@@ -36,7 +36,7 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-background">
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
       <div className="lg:pl-64">
-        <main className="p-6">
+        <main className="p-4 lg:p-6 max-w-7xl mx-auto">
           {renderContent()}
         </main>
       </div>

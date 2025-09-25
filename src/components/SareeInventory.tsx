@@ -20,7 +20,18 @@ interface Saree {
   profitMargin: number;
   dateManufactured: string;
   status: "available" | "low-stock" | "out-of-stock";
+  image?: string;
 }
+
+const getSareeImage = (type: string) => {
+  switch (type.toLowerCase()) {
+    case "silk": return "/src/assets/saree-silk.jpg";
+    case "cotton": return "/src/assets/saree-cotton.jpg";
+    case "georgette": return "/src/assets/saree-georgette.jpg";
+    case "chiffon": return "/src/assets/saree-chiffon.jpg";
+    default: return "/src/assets/saree-cotton.jpg";
+  }
+};
 
 const SareeInventory = () => {
   const { toast } = useToast();
@@ -396,6 +407,23 @@ const SareeInventory = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredSarees.map((saree) => (
           <Card key={saree.id} className="bg-gradient-card shadow-card border-0 hover:shadow-elevated transition-shadow">
+            {/* Saree Image */}
+            <div className="relative h-32 overflow-hidden rounded-t-lg">
+              <img 
+                src={getSareeImage(saree.type)} 
+                alt={`${saree.type} saree - ${saree.design}`}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = "/src/assets/saree-cotton.jpg";
+                }}
+              />
+              <div className="absolute top-2 right-2">
+                <Badge className={getStatusColor(saree.status)}>
+                  {saree.status.replace("-", " ")}
+                </Badge>
+              </div>
+            </div>
+
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -405,9 +433,6 @@ const SareeInventory = () => {
                   </CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">{saree.type}</p>
                 </div>
-                <Badge className={getStatusColor(saree.status)}>
-                  {saree.status.replace("-", " ")}
-                </Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">

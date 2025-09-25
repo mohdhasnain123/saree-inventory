@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -76,9 +77,17 @@ const Reports = () => {
     workerProductivity: "93 pieces/worker"
   };
 
+  const [quickReportDialog, setQuickReportDialog] = useState(false);
+  const [selectedQuickReport, setSelectedQuickReport] = useState("");
+
   const exportReport = (format: string) => {
     // Mock export functionality
     alert(`Exporting ${selectedReport} report as ${format.toUpperCase()}`);
+  };
+
+  const handleQuickReportClick = (reportType: string) => {
+    setSelectedQuickReport(reportType);
+    setQuickReportDialog(true);
   };
 
   return (
@@ -386,7 +395,11 @@ const Reports = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
+            <Button 
+              variant="outline" 
+              className="h-auto p-4 flex flex-col items-center gap-2"
+              onClick={() => handleQuickReportClick("Financial Report")}
+            >
               <IndianRupee className="w-6 h-6 text-success" />
               <div className="text-center">
                 <div className="font-medium">Financial Report</div>
@@ -394,7 +407,11 @@ const Reports = () => {
               </div>
             </Button>
             
-            <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
+            <Button 
+              variant="outline" 
+              className="h-auto p-4 flex flex-col items-center gap-2"
+              onClick={() => handleQuickReportClick("Production Report")}
+            >
               <Shirt className="w-6 h-6 text-primary" />
               <div className="text-center">
                 <div className="font-medium">Production Report</div>
@@ -402,7 +419,11 @@ const Reports = () => {
               </div>
             </Button>
             
-            <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
+            <Button 
+              variant="outline" 
+              className="h-auto p-4 flex flex-col items-center gap-2"
+              onClick={() => handleQuickReportClick("HR Report")}
+            >
               <Users className="w-6 h-6 text-accent" />
               <div className="text-center">
                 <div className="font-medium">HR Report</div>
@@ -410,7 +431,11 @@ const Reports = () => {
               </div>
             </Button>
             
-            <Button variant="outline" className="h-auto p-4 flex flex-col items-center gap-2">
+            <Button 
+              variant="outline" 
+              className="h-auto p-4 flex flex-col items-center gap-2"
+              onClick={() => handleQuickReportClick("Inventory Report")}
+            >
               <Package className="w-6 h-6 text-warning" />
               <div className="text-center">
                 <div className="font-medium">Inventory Report</div>
@@ -420,6 +445,36 @@ const Reports = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Quick Report Dialog */}
+      <Dialog open={quickReportDialog} onOpenChange={setQuickReportDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              {selectedQuickReport}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-muted-foreground">
+              {selectedQuickReport === "Financial Report" && "Detailed financial analysis including revenue, costs, and profit margins for the selected period."}
+              {selectedQuickReport === "Production Report" && "Comprehensive production metrics including output, efficiency, and quality control data."}
+              {selectedQuickReport === "HR Report" && "Worker performance analysis including productivity, attendance, and efficiency metrics."}
+              {selectedQuickReport === "Inventory Report" && "Complete inventory overview including stock levels, material usage, and reorder requirements."}
+            </p>
+            <div className="flex gap-3">
+              <Button className="flex-1" onClick={() => exportReport("pdf")}>
+                <Download className="w-4 h-4 mr-2" />
+                Generate PDF
+              </Button>
+              <Button variant="outline" className="flex-1" onClick={() => exportReport("csv")}>
+                <Download className="w-4 h-4 mr-2" />
+                Export CSV
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
