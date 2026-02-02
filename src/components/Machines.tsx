@@ -28,12 +28,17 @@ interface Machine {
   type: string;
   status: 'working' | 'maintenance' | 'broken' | 'idle';
   assignedWorker?: string;
+  workerId?: string;
   location: string;
   purchaseDate: string;
   lastMaintenance: string;
   nextMaintenance: string;
   efficiency: number;
   notes?: string;
+  sareeType?: string;
+  dailyProductionMeters: number;
+  weeklyProductionMeters: number;
+  ratePerMeter: number;
 }
 
 const Machines = () => {
@@ -42,6 +47,8 @@ const Machines = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingMachine, setEditingMachine] = useState<Machine | null>(null);
 
+  const sareeTypes = ["Silk Saree", "Cotton Saree", "Georgette Saree", "Chiffon Saree", "Banarasi Saree", "Kanjivaram Saree"];
+
   const [machines, setMachines] = useState<Machine[]>([
     {
       id: "MCH001",
@@ -49,12 +56,17 @@ const Machines = () => {
       type: "Power Loom",
       status: "working",
       assignedWorker: "Rajesh Kumar",
+      workerId: "WRK001",
       location: "Section A",
       purchaseDate: "2022-01-15",
       lastMaintenance: "2024-01-15",
       nextMaintenance: "2024-04-15",
       efficiency: 95,
-      notes: "Primary silk weaving loom"
+      notes: "Primary silk weaving loom",
+      sareeType: "Silk Saree",
+      dailyProductionMeters: 25,
+      weeklyProductionMeters: 150,
+      ratePerMeter: 45
     },
     {
       id: "MCH002",
@@ -62,12 +74,17 @@ const Machines = () => {
       type: "Dyeing Machine",
       status: "working",
       assignedWorker: "Priya Sharma",
+      workerId: "WRK002",
       location: "Section B", 
       purchaseDate: "2021-08-10",
       lastMaintenance: "2024-02-01",
       nextMaintenance: "2024-05-01",
       efficiency: 88,
-      notes: "For cotton and silk dyeing"
+      notes: "For cotton and silk dyeing",
+      sareeType: "Cotton Saree",
+      dailyProductionMeters: 40,
+      weeklyProductionMeters: 240,
+      ratePerMeter: 30
     },
     {
       id: "MCH003",
@@ -75,12 +92,17 @@ const Machines = () => {
       type: "Finishing Machine",
       status: "maintenance",
       assignedWorker: "Amit Singh",
+      workerId: "WRK003",
       location: "Section C",
       purchaseDate: "2023-03-20",
       lastMaintenance: "2024-02-20",
       nextMaintenance: "2024-03-20",
       efficiency: 75,
-      notes: "Under scheduled maintenance"
+      notes: "Under scheduled maintenance",
+      sareeType: "Georgette Saree",
+      dailyProductionMeters: 0,
+      weeklyProductionMeters: 85,
+      ratePerMeter: 35
     },
     {
       id: "MCH004",
@@ -88,12 +110,17 @@ const Machines = () => {
       type: "Quality Control",
       status: "working",
       assignedWorker: "Lakshmi Devi",
+      workerId: "WRK004",
       location: "QC Section",
       purchaseDate: "2022-11-05",
       lastMaintenance: "2024-01-10",
       nextMaintenance: "2024-04-10",
       efficiency: 98,
-      notes: "Automated quality inspection"
+      notes: "Automated quality inspection",
+      sareeType: "Banarasi Saree",
+      dailyProductionMeters: 15,
+      weeklyProductionMeters: 90,
+      ratePerMeter: 60
     },
     {
       id: "MCH005",
@@ -105,7 +132,11 @@ const Machines = () => {
       lastMaintenance: "2023-12-15",
       nextMaintenance: "2024-03-15",
       efficiency: 70,
-      notes: "Traditional hand weaving"
+      notes: "Traditional hand weaving",
+      sareeType: "Kanjivaram Saree",
+      dailyProductionMeters: 0,
+      weeklyProductionMeters: 0,
+      ratePerMeter: 55
     }
   ]);
 
@@ -114,10 +145,15 @@ const Machines = () => {
     type: "",
     location: "",
     status: "working" as const,
-    notes: ""
+    notes: "",
+    sareeType: "",
+    assignedWorker: "",
+    dailyProductionMeters: 0,
+    ratePerMeter: 35
   });
 
   const machineTypes = ["Power Loom", "Hand Loom", "Dyeing Machine", "Finishing Machine", "Quality Control", "Spinning Machine"];
+  const workers = ["Rajesh Kumar", "Priya Sharma", "Amit Singh", "Lakshmi Devi", "Suresh Patel", "Meena Kumari"];
 
   const filteredMachines = machines.filter(machine =>
     machine.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -147,10 +183,15 @@ const Machines = () => {
       nextMaintenance: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       efficiency: 100,
       notes: newMachine.notes,
+      sareeType: newMachine.sareeType,
+      assignedWorker: newMachine.assignedWorker,
+      dailyProductionMeters: newMachine.dailyProductionMeters,
+      weeklyProductionMeters: newMachine.dailyProductionMeters * 6,
+      ratePerMeter: newMachine.ratePerMeter
     };
 
     setMachines([...machines, machine]);
-    setNewMachine({ name: "", type: "", location: "", status: "working", notes: "" });
+    setNewMachine({ name: "", type: "", location: "", status: "working", notes: "", sareeType: "", assignedWorker: "", dailyProductionMeters: 0, ratePerMeter: 35 });
     setIsAddDialogOpen(false);
     
     toast({
@@ -198,6 +239,8 @@ const Machines = () => {
   const workingMachines = machines.filter(m => m.status === 'working').length;
   const maintenanceMachines = machines.filter(m => m.status === 'maintenance').length;
   const avgEfficiency = Math.round(machines.reduce((sum, m) => sum + m.efficiency, 0) / machines.length);
+  const totalDailyProduction = machines.reduce((sum, m) => sum + m.dailyProductionMeters, 0);
+  const totalWeeklyWages = machines.reduce((sum, m) => sum + (m.weeklyProductionMeters * m.ratePerMeter), 0);
 
   return (
     <div className="space-y-6">
@@ -264,13 +307,61 @@ const Machines = () => {
                 </Select>
               </div>
               <div className="grid gap-2">
+                <Label htmlFor="sareeType">Saree Type</Label>
+                <Select value={newMachine.sareeType} onValueChange={(value) => setNewMachine({...newMachine, sareeType: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select saree type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sareeTypes.map(type => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="worker">Assigned Worker</Label>
+                <Select value={newMachine.assignedWorker} onValueChange={(value) => setNewMachine({...newMachine, assignedWorker: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select worker" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {workers.map(worker => (
+                      <SelectItem key={worker} value={worker}>{worker}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="dailyProduction">Daily Production (meters)</Label>
+                  <Input
+                    id="dailyProduction"
+                    type="number"
+                    value={newMachine.dailyProductionMeters}
+                    onChange={(e) => setNewMachine({...newMachine, dailyProductionMeters: Number(e.target.value)})}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="ratePerMeter">Rate per Meter (₹)</Label>
+                  <Input
+                    id="ratePerMeter"
+                    type="number"
+                    value={newMachine.ratePerMeter}
+                    onChange={(e) => setNewMachine({...newMachine, ratePerMeter: Number(e.target.value)})}
+                    placeholder="35"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
                 <Label htmlFor="notes">Notes</Label>
                 <Textarea
                   id="notes"
                   value={newMachine.notes}
                   onChange={(e) => setNewMachine({...newMachine, notes: e.target.value})}
                   placeholder="Additional notes about the machine"
-                  rows={3}
+                  rows={2}
                 />
               </div>
             </div>
@@ -285,58 +376,86 @@ const Machines = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card className="bg-gradient-card shadow-card border-0">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Machines</p>
-                <p className="text-2xl font-bold text-foreground mt-1">{totalMachines}</p>
+                <p className="text-xs font-medium text-muted-foreground">Total Machines</p>
+                <p className="text-xl font-bold text-foreground mt-1">{totalMachines}</p>
               </div>
-              <div className="p-3 bg-primary/10 rounded-lg">
-                <Settings className="w-6 h-6 text-primary" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Settings className="w-5 h-5 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-card shadow-card border-0">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Working</p>
-                <p className="text-2xl font-bold text-foreground mt-1">{workingMachines}</p>
+                <p className="text-xs font-medium text-muted-foreground">Working</p>
+                <p className="text-xl font-bold text-foreground mt-1">{workingMachines}</p>
               </div>
-              <div className="p-3 bg-success/10 rounded-lg">
-                <CheckCircle className="w-6 h-6 text-success" />
+              <div className="p-2 bg-success/10 rounded-lg">
+                <CheckCircle className="w-5 h-5 text-success" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-card shadow-card border-0">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">In Maintenance</p>
-                <p className="text-2xl font-bold text-foreground mt-1">{maintenanceMachines}</p>
+                <p className="text-xs font-medium text-muted-foreground">Maintenance</p>
+                <p className="text-xl font-bold text-foreground mt-1">{maintenanceMachines}</p>
               </div>
-              <div className="p-3 bg-warning/10 rounded-lg">
-                <Wrench className="w-6 h-6 text-warning" />
+              <div className="p-2 bg-warning/10 rounded-lg">
+                <Wrench className="w-5 h-5 text-warning" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-card shadow-card border-0">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Avg Efficiency</p>
-                <p className="text-2xl font-bold text-foreground mt-1">{avgEfficiency}%</p>
+                <p className="text-xs font-medium text-muted-foreground">Avg Efficiency</p>
+                <p className="text-xl font-bold text-foreground mt-1">{avgEfficiency}%</p>
               </div>
-              <div className="p-3 bg-accent/10 rounded-lg">
-                <AlertTriangle className="w-6 h-6 text-accent" />
+              <div className="p-2 bg-accent/10 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-accent" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-card shadow-card border-0">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Daily Output</p>
+                <p className="text-xl font-bold text-foreground mt-1">{totalDailyProduction}m</p>
+              </div>
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Calendar className="w-5 h-5 text-primary" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-card shadow-card border-0">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Weekly Wages</p>
+                <p className="text-xl font-bold text-foreground mt-1">₹{totalWeeklyWages.toLocaleString()}</p>
+              </div>
+              <div className="p-2 bg-success/10 rounded-lg">
+                <User className="w-5 h-5 text-success" />
               </div>
             </div>
           </CardContent>
@@ -363,59 +482,74 @@ const Machines = () => {
         {filteredMachines.map((machine) => (
           <Card key={machine.id} className="bg-gradient-card shadow-card border-0">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-6">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
                   <div className="p-3 bg-primary/10 rounded-lg">
                     <Settings className="w-6 h-6 text-primary" />
                   </div>
                   <div className="space-y-1">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold text-foreground">{machine.name}</h3>
                       <Badge variant="outline">{machine.id}</Badge>
                       {getStatusBadge(machine.status)}
                     </div>
                     <p className="text-sm text-muted-foreground">{machine.type} • {machine.location}</p>
-                    {machine.assignedWorker && (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <User className="w-3 h-3" />
-                        <span>Assigned to: {machine.assignedWorker}</span>
-                      </div>
-                    )}
-                    {machine.notes && (
-                      <p className="text-sm text-muted-foreground italic">{machine.notes}</p>
+                    {machine.sareeType && (
+                      <Badge className="bg-primary/20 text-primary border-0">{machine.sareeType}</Badge>
                     )}
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-8">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 lg:gap-6">
+                  {machine.assignedWorker && (
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                        <User className="w-3 h-3" />
+                        <span>Worker</span>
+                      </div>
+                      <p className="font-medium text-foreground text-sm">{machine.assignedWorker}</p>
+                    </div>
+                  )}
+                  
                   <div className="text-center">
-                    <div className="text-sm text-muted-foreground">Efficiency</div>
+                    <div className="text-xs text-muted-foreground">Daily Output</div>
+                    <p className="font-semibold text-foreground">{machine.dailyProductionMeters}m</p>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground">Weekly Output</div>
+                    <p className="font-semibold text-foreground">{machine.weeklyProductionMeters}m</p>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground">Weekly Wage</div>
+                    <p className="font-semibold text-success">₹{(machine.weeklyProductionMeters * machine.ratePerMeter).toLocaleString()}</p>
+                  </div>
+                  
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground">Efficiency</div>
                     <p className="font-semibold text-foreground">{machine.efficiency}%</p>
                   </div>
-                  
-                  <div className="text-center">
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Calendar className="w-3 h-3" />
-                      <span>Next Service</span>
-                    </div>
-                    <p className="font-semibold text-foreground">{new Date(machine.nextMaintenance).toLocaleDateString()}</p>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => handleDeleteMachine(machine.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm">
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleDeleteMachine(machine.id)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
+              
+              {machine.notes && (
+                <p className="text-sm text-muted-foreground italic mt-3 pt-3 border-t border-border">{machine.notes}</p>
+              )}
             </CardContent>
           </Card>
         ))}
