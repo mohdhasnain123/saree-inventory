@@ -48,6 +48,14 @@ const Dashboard = () => {
       trending: "up"
     },
     {
+      title: "Yarn Length (Warp + Weft)",
+      value: "4,68,200",
+      unit: "meters",
+      icon: Package,
+      trend: "+9%",
+      trending: "up"
+    },
+    {
       title: "Sarees in Stock", 
       value: "335",
       unit: "pieces",

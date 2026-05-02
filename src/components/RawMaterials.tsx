@@ -14,6 +14,8 @@ interface Material {
   name: string;
   quantity: number;
   unit: string;
+  meters?: number;
+  yarnType?: "warp" | "weft" | "both" | "";
   supplier: string;
   costPerUnit: number;
   totalValue: number;
@@ -28,6 +30,8 @@ const RawMaterials = () => {
       name: "Cotton Yarn",
       quantity: 500,
       unit: "kg",
+      meters: 450000,
+      yarnType: "warp",
       supplier: "Gujarat Cotton Mills",
       costPerUnit: 120,
       totalValue: 60000,
@@ -38,6 +42,8 @@ const RawMaterials = () => {
       name: "Silk Thread",
       quantity: 15,
       unit: "kg",
+      meters: 18000,
+      yarnType: "weft",
       supplier: "Mysore Silk Co.",
       costPerUnit: 800,
       totalValue: 12000,
@@ -48,6 +54,8 @@ const RawMaterials = () => {
       name: "Gold Zari",
       quantity: 200,
       unit: "meters",
+      meters: 200,
+      yarnType: "both",
       supplier: "Varanasi Zari House",
       costPerUnit: 50,
       totalValue: 10000,
@@ -58,6 +66,8 @@ const RawMaterials = () => {
       name: "Synthetic Dye - Red",
       quantity: 0,
       unit: "kg",
+      meters: 0,
+      yarnType: "",
       supplier: "Chemical Industries Ltd",
       costPerUnit: 300,
       totalValue: 0,
@@ -72,6 +82,8 @@ const RawMaterials = () => {
     name: "",
     quantity: "",
     unit: "",
+    meters: "",
+    yarnType: "" as "" | "warp" | "weft" | "both",
     supplier: "",
     costPerUnit: ""
   });
@@ -97,6 +109,7 @@ const RawMaterials = () => {
     const costPerUnit = parseFloat(formData.costPerUnit);
     const totalValue = quantity * costPerUnit;
     const status = getStatus(quantity);
+    const meters = formData.meters ? parseFloat(formData.meters) : (formData.unit === "meters" ? quantity : 0);
 
     if (editingMaterial) {
       setMaterials(materials.map(material =>
@@ -106,6 +119,8 @@ const RawMaterials = () => {
               name: formData.name,
               quantity,
               unit: formData.unit,
+              meters,
+              yarnType: formData.yarnType,
               supplier: formData.supplier,
               costPerUnit,
               totalValue,
@@ -123,6 +138,8 @@ const RawMaterials = () => {
         name: formData.name,
         quantity,
         unit: formData.unit,
+        meters,
+        yarnType: formData.yarnType,
         supplier: formData.supplier,
         costPerUnit,
         totalValue,
@@ -135,7 +152,7 @@ const RawMaterials = () => {
       });
     }
 
-    setFormData({ name: "", quantity: "", unit: "", supplier: "", costPerUnit: "" });
+    setFormData({ name: "", quantity: "", unit: "", meters: "", yarnType: "", supplier: "", costPerUnit: "" });
     setEditingMaterial(null);
     setIsDialogOpen(false);
   };
@@ -146,6 +163,8 @@ const RawMaterials = () => {
       name: material.name,
       quantity: material.quantity.toString(),
       unit: material.unit,
+      meters: material.meters ? material.meters.toString() : "",
+      yarnType: material.yarnType || "",
       supplier: material.supplier,
       costPerUnit: material.costPerUnit.toString()
     });
@@ -167,6 +186,9 @@ const RawMaterials = () => {
   );
 
   const lowStockCount = materials.filter(m => m.status === "low-stock" || m.status === "out-of-stock").length;
+  const totalMeters = materials.reduce((sum, m) => sum + (m.meters || 0), 0);
+  const warpMeters = materials.filter(m => m.yarnType === "warp" || m.yarnType === "both").reduce((sum, m) => sum + (m.meters || 0), 0);
+  const weftMeters = materials.filter(m => m.yarnType === "weft" || m.yarnType === "both").reduce((sum, m) => sum + (m.meters || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -247,6 +269,31 @@ const RawMaterials = () => {
                     required
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="meters">Length (meters)</Label>
+                    <Input
+                      id="meters"
+                      type="number"
+                      value={formData.meters}
+                      onChange={(e) => setFormData({...formData, meters: e.target.value})}
+                      placeholder="Warp/weft length"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="yarnType">Yarn Use</Label>
+                    <Select value={formData.yarnType} onValueChange={(value: "warp" | "weft" | "both" | "") => setFormData({...formData, yarnType: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="warp">Warp (Tana)</SelectItem>
+                        <SelectItem value="weft">Weft (Bana)</SelectItem>
+                        <SelectItem value="both">Both</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
                 <div>
                   <Label htmlFor="costPerUnit">Cost per Unit (₹)</Label>
                   <Input
@@ -268,7 +315,7 @@ const RawMaterials = () => {
                     onClick={() => {
                       setIsDialogOpen(false);
                       setEditingMaterial(null);
-                      setFormData({ name: "", quantity: "", unit: "", supplier: "", costPerUnit: "" });
+                      setFormData({ name: "", quantity: "", unit: "", meters: "", yarnType: "", supplier: "", costPerUnit: "" });
                     }}
                   >
                     Cancel
@@ -278,6 +325,28 @@ const RawMaterials = () => {
             </DialogContent>
           </Dialog>
         </div>
+      </div>
+
+      {/* Length Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="bg-gradient-card shadow-card border-0">
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Total Yarn Length</p>
+            <p className="text-2xl font-bold text-foreground">{totalMeters.toLocaleString()} m</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-card shadow-card border-0">
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Warp (Tana) Available</p>
+            <p className="text-2xl font-bold text-primary">{warpMeters.toLocaleString()} m</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-card shadow-card border-0">
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Weft (Bana) Available</p>
+            <p className="text-2xl font-bold text-accent">{weftMeters.toLocaleString()} m</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Search */}
@@ -317,6 +386,19 @@ const RawMaterials = () => {
                   <p className="font-medium text-foreground">₹{material.costPerUnit}</p>
                 </div>
               </div>
+              {(material.meters ?? 0) > 0 && (
+                <div className="flex items-center justify-between p-2 bg-secondary/40 rounded-md">
+                  <div>
+                    <p className="text-muted-foreground text-xs">Length</p>
+                    <p className="font-semibold text-foreground">{material.meters?.toLocaleString()} m</p>
+                  </div>
+                  {material.yarnType && (
+                    <Badge variant="outline" className="capitalize">
+                      {material.yarnType === "both" ? "Warp + Weft" : material.yarnType}
+                    </Badge>
+                  )}
+                </div>
+              )}
               <div>
                 <p className="text-muted-foreground text-sm">Supplier</p>
                 <p className="font-medium text-foreground">{material.supplier}</p>
