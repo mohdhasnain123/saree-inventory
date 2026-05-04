@@ -22,6 +22,11 @@ interface Sale {
   customerName: string;
   saleDate: string;
   status: "completed" | "pending" | "cancelled";
+  paymentTermMonths: number;
+  paymentMethod: "cash" | "cheque";
+  returnedQuantity: number;
+  returnAmount: number;
+  netRevenue: number;
 }
 
 const Sales = () => {
@@ -39,7 +44,12 @@ const Sales = () => {
       profitMargin: 20,
       customerName: "Priya Textiles",
       saleDate: "2024-01-15",
-      status: "completed"
+      status: "completed",
+      paymentTermMonths: 2,
+      paymentMethod: "cheque",
+      returnedQuantity: 0,
+      returnAmount: 0,
+      netRevenue: 15000,
     },
     {
       id: "SAL002",
@@ -53,7 +63,12 @@ const Sales = () => {
       profitMargin: 29.4,
       customerName: "Meera Boutique",
       saleDate: "2024-01-14",
-      status: "completed"
+      status: "completed",
+      paymentTermMonths: 1,
+      paymentMethod: "cash",
+      returnedQuantity: 1,
+      returnAmount: 1700,
+      netRevenue: 6800,
     },
     {
       id: "SAL003",
@@ -67,7 +82,12 @@ const Sales = () => {
       profitMargin: 41.7,
       customerName: "Lakshmi Stores",
       saleDate: "2024-01-13",
-      status: "completed"
+      status: "completed",
+      paymentTermMonths: 3,
+      paymentMethod: "cheque",
+      returnedQuantity: 0,
+      returnAmount: 0,
+      netRevenue: 12000,
     },
     {
       id: "SAL004",
@@ -81,7 +101,12 @@ const Sales = () => {
       profitMargin: 25,
       customerName: "Radha Fashion",
       saleDate: "2024-01-12",
-      status: "pending"
+      status: "pending",
+      paymentTermMonths: 2,
+      paymentMethod: "cash",
+      returnedQuantity: 0,
+      returnAmount: 0,
+      netRevenue: 9600,
     }
   ]);
 
@@ -95,7 +120,10 @@ const Sales = () => {
     costPrice: "",
     sellingPrice: "",
     customerName: "",
-    saleDate: ""
+    saleDate: "",
+    paymentTermMonths: "1",
+    paymentMethod: "cash" as "cash" | "cheque",
+    returnedQuantity: "0",
   });
 
   const calculateProfit = (quantity: number, costPrice: number, sellingPrice: number) => {
@@ -126,7 +154,11 @@ const Sales = () => {
     const quantity = parseInt(formData.quantity);
     const costPrice = parseFloat(formData.costPrice);
     const sellingPrice = parseFloat(formData.sellingPrice);
+    const returnedQuantity = parseInt(formData.returnedQuantity || "0");
+    const paymentTermMonths = parseInt(formData.paymentTermMonths || "0");
     const { totalRevenue, profit, profitMargin } = calculateProfit(quantity, costPrice, sellingPrice);
+    const returnAmount = returnedQuantity * sellingPrice;
+    const netRevenue = totalRevenue - returnAmount;
 
     if (editingSale) {
       setSales(sales.map(sale =>
@@ -142,7 +174,12 @@ const Sales = () => {
               profit,
               profitMargin,
               customerName: formData.customerName,
-              saleDate: formData.saleDate
+              saleDate: formData.saleDate,
+              paymentTermMonths,
+              paymentMethod: formData.paymentMethod,
+              returnedQuantity,
+              returnAmount,
+              netRevenue,
             }
           : sale
       ));
@@ -163,7 +200,12 @@ const Sales = () => {
         profitMargin,
         customerName: formData.customerName,
         saleDate: formData.saleDate,
-        status: "completed"
+        status: "completed",
+        paymentTermMonths,
+        paymentMethod: formData.paymentMethod,
+        returnedQuantity,
+        returnAmount,
+        netRevenue,
       };
       setSales([newSale, ...sales]);
       toast({
@@ -172,7 +214,7 @@ const Sales = () => {
       });
     }
 
-    setFormData({ sareeId: "", sareeType: "", quantity: "", costPrice: "", sellingPrice: "", customerName: "", saleDate: "" });
+    setFormData({ sareeId: "", sareeType: "", quantity: "", costPrice: "", sellingPrice: "", customerName: "", saleDate: "", paymentTermMonths: "1", paymentMethod: "cash", returnedQuantity: "0" });
     setEditingSale(null);
     setIsDialogOpen(false);
   };
@@ -186,7 +228,10 @@ const Sales = () => {
       costPrice: sale.costPrice.toString(),
       sellingPrice: sale.sellingPrice.toString(),
       customerName: sale.customerName,
-      saleDate: sale.saleDate
+      saleDate: sale.saleDate,
+      paymentTermMonths: sale.paymentTermMonths.toString(),
+      paymentMethod: sale.paymentMethod,
+      returnedQuantity: sale.returnedQuantity.toString(),
     });
     setIsDialogOpen(true);
   };
@@ -206,8 +251,9 @@ const Sales = () => {
     sale.sareeId.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalRevenue = sales.reduce((sum, sale) => sum + sale.totalRevenue, 0);
-  const totalProfit = sales.reduce((sum, sale) => sum + sale.profit, 0);
+  const totalRevenue = sales.reduce((sum, sale) => sum + (sale.netRevenue ?? sale.totalRevenue), 0);
+  const totalReturns = sales.reduce((sum, sale) => sum + (sale.returnAmount ?? 0), 0);
+  const totalProfit = sales.reduce((sum, sale) => sum + (sale.profit - (sale.returnAmount ?? 0)), 0);
   const avgProfitMargin = sales.length > 0 ? sales.reduce((sum, sale) => sum + sale.profitMargin, 0) / sales.length : 0;
 
   return (
@@ -317,6 +363,48 @@ const Sales = () => {
                     required
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="paymentTermMonths">Payment Term (months)</Label>
+                    <Input
+                      id="paymentTermMonths"
+                      type="number"
+                      min="0"
+                      value={formData.paymentTermMonths}
+                      onChange={(e) => setFormData({...formData, paymentTermMonths: e.target.value})}
+                      placeholder="0"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="paymentMethod">Payment Method</Label>
+                    <Select value={formData.paymentMethod} onValueChange={(value: "cash" | "cheque") => setFormData({...formData, paymentMethod: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="cheque">Cheque</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="returnedQuantity">Returned Sarees (qty)</Label>
+                  <Input
+                    id="returnedQuantity"
+                    type="number"
+                    min="0"
+                    value={formData.returnedQuantity}
+                    onChange={(e) => setFormData({...formData, returnedQuantity: e.target.value})}
+                    placeholder="0"
+                  />
+                  {formData.returnedQuantity && formData.sellingPrice && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Return amount adjusted: ₹{(parseInt(formData.returnedQuantity || "0") * parseFloat(formData.sellingPrice || "0")).toLocaleString()}
+                    </p>
+                  )}
+                </div>
                 <div className="flex gap-3 pt-4">
                   <Button type="submit" className="flex-1">
                     {editingSale ? "Update" : "Record"} Sale
@@ -327,7 +415,7 @@ const Sales = () => {
                     onClick={() => {
                       setIsDialogOpen(false);
                       setEditingSale(null);
-                      setFormData({ sareeId: "", sareeType: "", quantity: "", costPrice: "", sellingPrice: "", customerName: "", saleDate: "" });
+                      setFormData({ sareeId: "", sareeType: "", quantity: "", costPrice: "", sellingPrice: "", customerName: "", saleDate: "", paymentTermMonths: "1", paymentMethod: "cash", returnedQuantity: "0" });
                     }}
                   >
                     Cancel
@@ -421,22 +509,44 @@ const Sales = () => {
                     </div>
                     <div>
                       <p className="text-muted-foreground">Quantity</p>
-                      <p className="font-medium text-foreground">{sale.quantity} pieces</p>
+                      <p className="font-medium text-foreground">
+                        {sale.quantity} pieces
+                        {sale.returnedQuantity > 0 && (
+                          <span className="text-destructive"> (-{sale.returnedQuantity} returned)</span>
+                        )}
+                      </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Price/Unit</p>
                       <p className="font-medium text-foreground">₹{sale.sellingPrice}</p>
                     </div>
+                    <div>
+                      <p className="text-muted-foreground">Payment Term</p>
+                      <p className="font-medium text-foreground">{sale.paymentTermMonths} month{sale.paymentTermMonths === 1 ? "" : "s"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Payment Method</p>
+                      <p className="font-medium text-foreground capitalize">{sale.paymentMethod}</p>
+                    </div>
+                    {sale.returnedQuantity > 0 && (
+                      <div>
+                        <p className="text-muted-foreground">Return Adjusted</p>
+                        <p className="font-medium text-destructive">-₹{sale.returnAmount.toLocaleString()}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-6">
                   <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Revenue</p>
-                    <p className="text-xl font-bold text-foreground">₹{sale.totalRevenue.toLocaleString()}</p>
+                    <p className="text-sm text-muted-foreground">Net Revenue</p>
+                    <p className="text-xl font-bold text-foreground">₹{(sale.netRevenue ?? sale.totalRevenue).toLocaleString()}</p>
+                    {sale.returnedQuantity > 0 && (
+                      <p className="text-xs text-muted-foreground">Gross: ₹{sale.totalRevenue.toLocaleString()}</p>
+                    )}
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-sm text-muted-foreground">Profit:</span>
                       <span className={`text-sm font-medium ${getProfitColor(sale.profitMargin)}`}>
-                        ₹{sale.profit.toLocaleString()} ({sale.profitMargin.toFixed(1)}%)
+                        ₹{(sale.profit - (sale.returnAmount ?? 0)).toLocaleString()} ({sale.profitMargin.toFixed(1)}%)
                       </span>
                     </div>
                   </div>
