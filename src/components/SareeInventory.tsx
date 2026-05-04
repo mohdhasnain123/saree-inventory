@@ -294,6 +294,11 @@ const SareeInventory = () => {
                       placeholder="0"
                       required
                     />
+                    {!editingSaree && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        + ₹{(getFinishingCosts().cuttingCost || 0) + (getFinishingCosts().waxingCost || 0)} finishing
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="sellingPrice">Selling Price (₹)</Label>
