@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Shirt, Plus, Search, Edit, Trash2, Calendar, IndianRupee } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getFinishingCosts } from "@/components/Finishing";
 
 interface Saree {
   id: string;
@@ -123,7 +124,10 @@ const SareeInventory = () => {
     e.preventDefault();
     
     const quantity = parseInt(formData.quantity);
-    const costPrice = parseFloat(formData.costPrice);
+    const baseCost = parseFloat(formData.costPrice);
+    const finishing = getFinishingCosts();
+    const finishingPerSaree = (finishing.cuttingCost || 0) + (finishing.waxingCost || 0);
+    const costPrice = editingSaree ? baseCost : baseCost + finishingPerSaree;
     const sellingPrice = parseFloat(formData.sellingPrice);
     const status = getStatus(quantity);
     const { totalValue, profitMargin } = calculateValues(quantity, costPrice, sellingPrice);
@@ -290,6 +294,11 @@ const SareeInventory = () => {
                       placeholder="0"
                       required
                     />
+                    {!editingSaree && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        + ₹{(getFinishingCosts().cuttingCost || 0) + (getFinishingCosts().waxingCost || 0)} finishing
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="sellingPrice">Selling Price (₹)</Label>

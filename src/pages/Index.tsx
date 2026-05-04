@@ -6,6 +6,7 @@ import SareeInventory from "@/components/SareeInventory";
 import Sales from "@/components/Sales";
 import Workers from "@/components/Workers";
 import Machines from "@/components/Machines";
+import Finishing from "@/components/Finishing";
 import Reports from "@/components/Reports";
 
 const Index = () => {
@@ -25,6 +26,8 @@ const Index = () => {
         return <Workers />;
       case "machines":
         return <Machines />;
+      case "finishing":
+        return <Finishing />;
       case "reports":
         return <Reports />;
       default:
