@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   TrendingUp,
   Factory,
+  Scissors,
   Menu,
   X
 } from "lucide-react";
@@ -28,6 +29,7 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
     { id: "sarees", label: "Sarees", icon: Shirt },
     { id: "workers", label: "Workers", icon: Users },
     { id: "machines", label: "Machines", icon: Settings },
+    { id: "finishing", label: "Finishing", icon: Scissors },
     { id: "sales", label: "Sales", icon: ShoppingCart },
     { id: "reports", label: "Reports", icon: TrendingUp },
   ];
