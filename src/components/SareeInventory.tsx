@@ -290,26 +290,54 @@ const SareeInventory = () => {
                     required
                   />
                 </div>
-                <div>
-                  <Label htmlFor="color">Color</Label>
-                  <Input
-                    id="color"
-                    value={formData.color}
-                    onChange={(e) => setFormData({...formData, color: e.target.value})}
-                    placeholder="e.g., Red, Royal Blue"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="quantity">Quantity</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    value={formData.quantity}
-                    onChange={(e) => setFormData({...formData, quantity: e.target.value})}
-                    placeholder="0"
-                    required
-                  />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Colors & Quantities</Label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setFormData({...formData, colors: [...formData.colors, { color: "", quantity: "" }]})}
+                    >
+                      <Plus className="w-3 h-3 mr-1" /> Add Color
+                    </Button>
+                  </div>
+                  {formData.colors.map((c, idx) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <Input
+                        value={c.color}
+                        onChange={(e) => {
+                          const next = [...formData.colors];
+                          next[idx] = { ...next[idx], color: e.target.value };
+                          setFormData({...formData, colors: next});
+                        }}
+                        placeholder="Color (e.g. Red)"
+                        required
+                      />
+                      <Input
+                        type="number"
+                        value={c.quantity}
+                        onChange={(e) => {
+                          const next = [...formData.colors];
+                          next[idx] = { ...next[idx], quantity: e.target.value };
+                          setFormData({...formData, colors: next});
+                        }}
+                        placeholder="Qty"
+                        className="w-24"
+                        required
+                      />
+                      {formData.colors.length > 1 && (
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setFormData({...formData, colors: formData.colors.filter((_, i) => i !== idx)})}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -360,7 +388,7 @@ const SareeInventory = () => {
                     onClick={() => {
                       setIsDialogOpen(false);
                       setEditingSaree(null);
-                      setFormData({ type: "", color: "", design: "", quantity: "", costPrice: "", sellingPrice: "", dateManufactured: "" });
+                      setFormData({ type: "", design: "", colors: [{ color: "", quantity: "" }], costPrice: "", sellingPrice: "", dateManufactured: "" });
                     }}
                   >
                     Cancel
