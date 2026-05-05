@@ -6,16 +6,15 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shirt, Plus, Search, Edit, Trash2, Calendar, IndianRupee } from "lucide-react";
+import { Shirt, Plus, Search, Edit, Trash2, Calendar, IndianRupee, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getFinishingCosts } from "@/components/Finishing";
 
 interface Saree {
   id: string;
   type: string;
-  color: string;
   design: string;
-  quantity: number;
+  colors: { color: string; quantity: number }[];
   costPrice: number;
   sellingPrice: number;
   totalValue: number;
@@ -41,9 +40,11 @@ const SareeInventory = () => {
     {
       id: "SAR001",
       type: "Silk",
-      color: "Red",
       design: "Traditional Kanjivaram",
-      quantity: 25,
+      colors: [
+        { color: "Red", quantity: 15 },
+        { color: "Maroon", quantity: 10 },
+      ],
       costPrice: 4000,
       sellingPrice: 5000,
       totalValue: 125000,
@@ -54,9 +55,12 @@ const SareeInventory = () => {
     {
       id: "SAR002",
       type: "Cotton",
-      color: "Blue",
       design: "Handloom Pure Cotton",
-      quantity: 45,
+      colors: [
+        { color: "Blue", quantity: 25 },
+        { color: "White", quantity: 12 },
+        { color: "Yellow", quantity: 8 },
+      ],
       costPrice: 1200,
       sellingPrice: 1700,
       totalValue: 76500,
@@ -67,9 +71,11 @@ const SareeInventory = () => {
     {
       id: "SAR003",
       type: "Georgette",
-      color: "Pink",
       design: "Floral Print Georgette",
-      quantity: 8,
+      colors: [
+        { color: "Pink", quantity: 5 },
+        { color: "Purple", quantity: 3 },
+      ],
       costPrice: 3500,
       sellingPrice: 6000,
       totalValue: 48000,
@@ -80,9 +86,10 @@ const SareeInventory = () => {
     {
       id: "SAR004",
       type: "Chiffon",
-      color: "Green",
       design: "Embroidered Chiffon",
-      quantity: 0,
+      colors: [
+        { color: "Green", quantity: 0 },
+      ],
       costPrice: 1800,
       sellingPrice: 2400,
       totalValue: 0,
@@ -98,9 +105,8 @@ const SareeInventory = () => {
   const [editingSaree, setEditingSaree] = useState<Saree | null>(null);
   const [formData, setFormData] = useState({
     type: "",
-    color: "",
     design: "",
-    quantity: "",
+    colors: [{ color: "", quantity: "" }] as { color: string; quantity: string }[],
     costPrice: "",
     sellingPrice: "",
     dateManufactured: ""
@@ -129,7 +135,10 @@ const SareeInventory = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const quantity = parseInt(formData.quantity);
+    const colors = formData.colors
+      .filter(c => c.color.trim() !== "")
+      .map(c => ({ color: c.color, quantity: parseInt(c.quantity) || 0 }));
+    const quantity = colors.reduce((s, c) => s + c.quantity, 0);
     const baseCost = parseFloat(formData.costPrice);
     const finishing = getFinishingCosts();
     const finishingPerSaree = (finishing.cuttingCost || 0) + (finishing.waxingCost || 0);
@@ -144,9 +153,8 @@ const SareeInventory = () => {
           ? {
               ...saree,
               type: formData.type,
-              color: formData.color,
               design: formData.design,
-              quantity,
+              colors,
               costPrice,
               sellingPrice,
               totalValue,
@@ -164,9 +172,8 @@ const SareeInventory = () => {
       const newSaree: Saree = {
         id: `SAR${String(sarees.length + 1).padStart(3, '0')}`,
         type: formData.type,
-        color: formData.color,
         design: formData.design,
-        quantity,
+        colors,
         costPrice,
         sellingPrice,
         totalValue,
@@ -181,7 +188,7 @@ const SareeInventory = () => {
       });
     }
 
-    setFormData({ type: "", color: "", design: "", quantity: "", costPrice: "", sellingPrice: "", dateManufactured: "" });
+    setFormData({ type: "", design: "", colors: [{ color: "", quantity: "" }], costPrice: "", sellingPrice: "", dateManufactured: "" });
     setEditingSaree(null);
     setIsDialogOpen(false);
   };
@@ -190,9 +197,10 @@ const SareeInventory = () => {
     setEditingSaree(saree);
     setFormData({
       type: saree.type,
-      color: saree.color,
       design: saree.design,
-      quantity: saree.quantity.toString(),
+      colors: saree.colors.length > 0
+        ? saree.colors.map(c => ({ color: c.color, quantity: c.quantity.toString() }))
+        : [{ color: "", quantity: "" }],
       costPrice: saree.costPrice.toString(),
       sellingPrice: saree.sellingPrice.toString(),
       dateManufactured: saree.dateManufactured
@@ -219,8 +227,9 @@ const SareeInventory = () => {
     return matchesSearch && matchesFilter;
   });
 
+  const getSareeQuantity = (saree: Saree) => saree.colors.reduce((s, c) => s + c.quantity, 0);
   const totalInventoryValue = sarees.reduce((sum, saree) => sum + saree.totalValue, 0);
-  const totalQuantity = sarees.reduce((sum, saree) => sum + saree.quantity, 0);
+  const totalQuantity = sarees.reduce((sum, saree) => sum + getSareeQuantity(saree), 0);
   const lowStockCount = sarees.filter(s => s.status === "low-stock" || s.status === "out-of-stock").length;
 
   return (
