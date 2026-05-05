@@ -539,11 +539,6 @@ const Machines = () => {
                     <div className="text-xs text-muted-foreground">Weekly Wage</div>
                     <p className="font-semibold text-success">₹{(machine.weeklyProductionMeters * machine.ratePerMeter).toLocaleString()}</p>
                   </div>
-                  
-                  <div className="text-center">
-                    <div className="text-xs text-muted-foreground">Per Saree</div>
-                    <p className="font-semibold text-foreground">{machine.metersPerSaree}m</p>
-                  </div>
                 </div>
                 
                 <div className="flex gap-2">
