@@ -512,7 +512,7 @@ const Machines = () => {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 lg:gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6">
                   {machine.assignedWorker && (
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
