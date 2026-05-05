@@ -273,6 +273,16 @@ const SareeInventory = () => {
                   />
                 </div>
                 <div>
+                  <Label htmlFor="color">Color</Label>
+                  <Input
+                    id="color"
+                    value={formData.color}
+                    onChange={(e) => setFormData({...formData, color: e.target.value})}
+                    placeholder="e.g., Red, Royal Blue"
+                    required
+                  />
+                </div>
+                <div>
                   <Label htmlFor="quantity">Quantity</Label>
                   <Input
                     id="quantity"
