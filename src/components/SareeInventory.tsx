@@ -496,18 +496,22 @@ const SareeInventory = () => {
                     <Shirt className="w-4 h-4" />
                     {saree.id}
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">{saree.type} • {saree.color}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{saree.type}</p>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
                 <p className="font-medium text-foreground">{saree.design}</p>
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <Badge variant="outline" className="text-xs">Color: {saree.color}</Badge>
-                  <Badge variant="outline" className="text-xs">Qty: {saree.quantity}</Badge>
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <Badge className="text-xs bg-primary/10 text-primary border-0">Total: {getSareeQuantity(saree)} pcs</Badge>
+                  {saree.colors.map((c, i) => (
+                    <Badge key={i} variant="outline" className="text-xs">
+                      {c.color}: {c.quantity}
+                    </Badge>
+                  ))}
                 </div>
-                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-2">
                   <Calendar className="w-3 h-3" />
                   Manufactured: {new Date(saree.dateManufactured).toLocaleDateString()}
                 </p>
@@ -515,7 +519,7 @@ const SareeInventory = () => {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-muted-foreground">Quantity</p>
-                  <p className="font-medium text-foreground">{saree.quantity} pieces</p>
+                  <p className="font-medium text-foreground">{getSareeQuantity(saree)} pieces</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Selling Price</p>
