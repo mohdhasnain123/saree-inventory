@@ -33,12 +33,12 @@ interface Machine {
   purchaseDate: string;
   lastMaintenance: string;
   nextMaintenance: string;
-  efficiency: number;
   notes?: string;
   sareeType?: string;
   dailyProductionMeters: number;
   weeklyProductionMeters: number;
   ratePerMeter: number;
+  metersPerSaree: number;
 }
 
 const Machines = () => {
@@ -61,12 +61,12 @@ const Machines = () => {
       purchaseDate: "2022-01-15",
       lastMaintenance: "2024-01-15",
       nextMaintenance: "2024-04-15",
-      efficiency: 95,
       notes: "Primary silk weaving loom",
       sareeType: "Silk Saree",
       dailyProductionMeters: 25,
       weeklyProductionMeters: 150,
-      ratePerMeter: 45
+      ratePerMeter: 45,
+      metersPerSaree: 6.5
     },
     {
       id: "MCH002",
@@ -79,12 +79,12 @@ const Machines = () => {
       purchaseDate: "2021-08-10",
       lastMaintenance: "2024-02-01",
       nextMaintenance: "2024-05-01",
-      efficiency: 88,
       notes: "For cotton and silk dyeing",
       sareeType: "Cotton Saree",
       dailyProductionMeters: 40,
       weeklyProductionMeters: 240,
-      ratePerMeter: 30
+      ratePerMeter: 30,
+      metersPerSaree: 5.5
     },
     {
       id: "MCH003",
@@ -97,12 +97,12 @@ const Machines = () => {
       purchaseDate: "2023-03-20",
       lastMaintenance: "2024-02-20",
       nextMaintenance: "2024-03-20",
-      efficiency: 75,
       notes: "Under scheduled maintenance",
       sareeType: "Georgette Saree",
       dailyProductionMeters: 0,
       weeklyProductionMeters: 85,
-      ratePerMeter: 35
+      ratePerMeter: 35,
+      metersPerSaree: 5.5
     },
     {
       id: "MCH004",
@@ -115,12 +115,12 @@ const Machines = () => {
       purchaseDate: "2022-11-05",
       lastMaintenance: "2024-01-10",
       nextMaintenance: "2024-04-10",
-      efficiency: 98,
       notes: "Automated quality inspection",
       sareeType: "Banarasi Saree",
       dailyProductionMeters: 15,
       weeklyProductionMeters: 90,
-      ratePerMeter: 60
+      ratePerMeter: 60,
+      metersPerSaree: 6.0
     },
     {
       id: "MCH005",
@@ -131,12 +131,12 @@ const Machines = () => {
       purchaseDate: "2020-05-12",
       lastMaintenance: "2023-12-15",
       nextMaintenance: "2024-03-15",
-      efficiency: 70,
       notes: "Traditional hand weaving",
       sareeType: "Kanjivaram Saree",
       dailyProductionMeters: 0,
       weeklyProductionMeters: 0,
-      ratePerMeter: 55
+      ratePerMeter: 55,
+      metersPerSaree: 6.5
     }
   ]);
 
@@ -149,7 +149,8 @@ const Machines = () => {
     sareeType: "",
     assignedWorker: "",
     dailyProductionMeters: 0,
-    ratePerMeter: 35
+    ratePerMeter: 35,
+    metersPerSaree: 6.5
   });
 
   const machineTypes = ["Power Loom", "Hand Loom", "Dyeing Machine", "Finishing Machine", "Quality Control", "Spinning Machine"];
@@ -181,17 +182,17 @@ const Machines = () => {
       purchaseDate: new Date().toISOString().split('T')[0],
       lastMaintenance: new Date().toISOString().split('T')[0],
       nextMaintenance: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      efficiency: 100,
       notes: newMachine.notes,
       sareeType: newMachine.sareeType,
       assignedWorker: newMachine.assignedWorker,
       dailyProductionMeters: newMachine.dailyProductionMeters,
       weeklyProductionMeters: newMachine.dailyProductionMeters * 6,
-      ratePerMeter: newMachine.ratePerMeter
+      ratePerMeter: newMachine.ratePerMeter,
+      metersPerSaree: newMachine.metersPerSaree
     };
 
     setMachines([...machines, machine]);
-    setNewMachine({ name: "", type: "", location: "", status: "working", notes: "", sareeType: "", assignedWorker: "", dailyProductionMeters: 0, ratePerMeter: 35 });
+    setNewMachine({ name: "", type: "", location: "", status: "working", notes: "", sareeType: "", assignedWorker: "", dailyProductionMeters: 0, ratePerMeter: 35, metersPerSaree: 6.5 });
     setIsAddDialogOpen(false);
     
     toast({
@@ -238,8 +239,8 @@ const Machines = () => {
   const totalMachines = machines.length;
   const workingMachines = machines.filter(m => m.status === 'working').length;
   const maintenanceMachines = machines.filter(m => m.status === 'maintenance').length;
-  const avgEfficiency = Math.round(machines.reduce((sum, m) => sum + m.efficiency, 0) / machines.length);
   const totalDailyProduction = machines.reduce((sum, m) => sum + m.dailyProductionMeters, 0);
+  const totalDailySarees = machines.reduce((sum, m) => sum + (m.metersPerSaree > 0 ? m.dailyProductionMeters / m.metersPerSaree : 0), 0);
   const totalWeeklyWages = machines.reduce((sum, m) => sum + (m.weeklyProductionMeters * m.ratePerMeter), 0);
 
   return (
@@ -355,6 +356,17 @@ const Machines = () => {
                 </div>
               </div>
               <div className="grid gap-2">
+                <Label htmlFor="metersPerSaree">Meters per Saree</Label>
+                <Input
+                  id="metersPerSaree"
+                  type="number"
+                  step="0.1"
+                  value={newMachine.metersPerSaree}
+                  onChange={(e) => setNewMachine({...newMachine, metersPerSaree: Number(e.target.value)})}
+                  placeholder="6.5"
+                />
+              </div>
+              <div className="grid gap-2">
                 <Label htmlFor="notes">Notes</Label>
                 <Textarea
                   id="notes"
@@ -423,11 +435,11 @@ const Machines = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Avg Efficiency</p>
-                <p className="text-xl font-bold text-foreground mt-1">{avgEfficiency}%</p>
+                <p className="text-xs font-medium text-muted-foreground">Daily Sarees</p>
+                <p className="text-xl font-bold text-foreground mt-1">{totalDailySarees.toFixed(1)}</p>
               </div>
               <div className="p-2 bg-accent/10 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-accent" />
+                <Calendar className="w-5 h-5 text-accent" />
               </div>
             </div>
           </CardContent>
@@ -514,11 +526,13 @@ const Machines = () => {
                   <div className="text-center">
                     <div className="text-xs text-muted-foreground">Daily Output</div>
                     <p className="font-semibold text-foreground">{machine.dailyProductionMeters}m</p>
+                    <p className="text-xs text-muted-foreground">{machine.metersPerSaree > 0 ? (machine.dailyProductionMeters / machine.metersPerSaree).toFixed(1) : 0} sarees</p>
                   </div>
                   
                   <div className="text-center">
                     <div className="text-xs text-muted-foreground">Weekly Output</div>
                     <p className="font-semibold text-foreground">{machine.weeklyProductionMeters}m</p>
+                    <p className="text-xs text-muted-foreground">{machine.metersPerSaree > 0 ? (machine.weeklyProductionMeters / machine.metersPerSaree).toFixed(1) : 0} sarees</p>
                   </div>
                   
                   <div className="text-center">
@@ -527,8 +541,8 @@ const Machines = () => {
                   </div>
                   
                   <div className="text-center">
-                    <div className="text-xs text-muted-foreground">Efficiency</div>
-                    <p className="font-semibold text-foreground">{machine.efficiency}%</p>
+                    <div className="text-xs text-muted-foreground">Per Saree</div>
+                    <p className="font-semibold text-foreground">{machine.metersPerSaree}m</p>
                   </div>
                 </div>
                 
