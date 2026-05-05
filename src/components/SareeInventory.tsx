@@ -13,6 +13,7 @@ import { getFinishingCosts } from "@/components/Finishing";
 interface Saree {
   id: string;
   type: string;
+  color: string;
   design: string;
   quantity: number;
   costPrice: number;
@@ -40,6 +41,7 @@ const SareeInventory = () => {
     {
       id: "SAR001",
       type: "Silk",
+      color: "Red",
       design: "Traditional Kanjivaram",
       quantity: 25,
       costPrice: 4000,
@@ -52,6 +54,7 @@ const SareeInventory = () => {
     {
       id: "SAR002",
       type: "Cotton",
+      color: "Blue",
       design: "Handloom Pure Cotton",
       quantity: 45,
       costPrice: 1200,
@@ -64,6 +67,7 @@ const SareeInventory = () => {
     {
       id: "SAR003",
       type: "Georgette",
+      color: "Pink",
       design: "Floral Print Georgette",
       quantity: 8,
       costPrice: 3500,
@@ -76,6 +80,7 @@ const SareeInventory = () => {
     {
       id: "SAR004",
       type: "Chiffon",
+      color: "Green",
       design: "Embroidered Chiffon",
       quantity: 0,
       costPrice: 1800,
@@ -93,6 +98,7 @@ const SareeInventory = () => {
   const [editingSaree, setEditingSaree] = useState<Saree | null>(null);
   const [formData, setFormData] = useState({
     type: "",
+    color: "",
     design: "",
     quantity: "",
     costPrice: "",
@@ -138,6 +144,7 @@ const SareeInventory = () => {
           ? {
               ...saree,
               type: formData.type,
+              color: formData.color,
               design: formData.design,
               quantity,
               costPrice,
@@ -157,6 +164,7 @@ const SareeInventory = () => {
       const newSaree: Saree = {
         id: `SAR${String(sarees.length + 1).padStart(3, '0')}`,
         type: formData.type,
+        color: formData.color,
         design: formData.design,
         quantity,
         costPrice,
@@ -173,7 +181,7 @@ const SareeInventory = () => {
       });
     }
 
-    setFormData({ type: "", design: "", quantity: "", costPrice: "", sellingPrice: "", dateManufactured: "" });
+    setFormData({ type: "", color: "", design: "", quantity: "", costPrice: "", sellingPrice: "", dateManufactured: "" });
     setEditingSaree(null);
     setIsDialogOpen(false);
   };
@@ -182,6 +190,7 @@ const SareeInventory = () => {
     setEditingSaree(saree);
     setFormData({
       type: saree.type,
+      color: saree.color,
       design: saree.design,
       quantity: saree.quantity.toString(),
       costPrice: saree.costPrice.toString(),
@@ -342,7 +351,7 @@ const SareeInventory = () => {
                     onClick={() => {
                       setIsDialogOpen(false);
                       setEditingSaree(null);
-                      setFormData({ type: "", design: "", quantity: "", costPrice: "", sellingPrice: "", dateManufactured: "" });
+                      setFormData({ type: "", color: "", design: "", quantity: "", costPrice: "", sellingPrice: "", dateManufactured: "" });
                     }}
                   >
                     Cancel
@@ -450,13 +459,17 @@ const SareeInventory = () => {
                     <Shirt className="w-4 h-4" />
                     {saree.id}
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">{saree.type}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{saree.type} • {saree.color}</p>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
                 <p className="font-medium text-foreground">{saree.design}</p>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <Badge variant="outline" className="text-xs">Color: {saree.color}</Badge>
+                  <Badge variant="outline" className="text-xs">Qty: {saree.quantity}</Badge>
+                </div>
                 <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                   <Calendar className="w-3 h-3" />
                   Manufactured: {new Date(saree.dateManufactured).toLocaleDateString()}
