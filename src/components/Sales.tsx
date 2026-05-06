@@ -11,6 +11,46 @@ import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+// Convert number to Indian Rupees in words
+const numberToWordsIndian = (num: number): string => {
+  const a = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
+    "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+  const b = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+  const inWords = (n: number): string => {
+    if (n < 20) return a[n];
+    if (n < 100) return b[Math.floor(n / 10)] + (n % 10 ? " " + a[n % 10] : "");
+    if (n < 1000) return a[Math.floor(n / 100)] + " Hundred" + (n % 100 ? " " + inWords(n % 100) : "");
+    return "";
+  };
+  const convert = (n: number): string => {
+    if (n === 0) return "Zero";
+    let str = "";
+    const crore = Math.floor(n / 10000000); n %= 10000000;
+    const lakh = Math.floor(n / 100000); n %= 100000;
+    const thousand = Math.floor(n / 1000); n %= 1000;
+    const hundred = n;
+    if (crore) str += inWords(crore) + " Crore ";
+    if (lakh) str += inWords(lakh) + " Lakh ";
+    if (thousand) str += inWords(thousand) + " Thousand ";
+    if (hundred) str += inWords(hundred);
+    return str.trim();
+  };
+  const rupees = Math.floor(num);
+  const paise = Math.round((num - rupees) * 100);
+  let result = "Indian Rupees " + convert(rupees);
+  if (paise > 0) result += " and " + convert(paise) + " Paise";
+  return result + " Only";
+};
+
+const formatINDate = (iso: string): string => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${String(d.getDate()).padStart(2,"0")}-${months[d.getMonth()]}-${String(d.getFullYear()).slice(-2)}`;
+};
+
+const formatINR = (n: number): string => n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 interface Sale {
   id: string;
   sareeId: string;
