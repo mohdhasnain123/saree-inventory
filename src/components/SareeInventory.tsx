@@ -10,6 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Shirt, Plus, Search, Edit, Trash2, Calendar, IndianRupee, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
+import sareeSilk from "@/assets/saree-silk.jpg";
+import sareeCotton from "@/assets/saree-cotton.jpg";
+import sareeGeorgette from "@/assets/saree-georgette.jpg";
+import sareeChiffon from "@/assets/saree-chiffon.jpg";
 
 interface Saree {
   id: string;
@@ -31,11 +35,11 @@ interface FinishingCosts {
 
 const getSareeImage = (type: string) => {
   switch (type.toLowerCase()) {
-    case "silk": return "/src/assets/saree-silk.jpg";
-    case "cotton": return "/src/assets/saree-cotton.jpg";
-    case "georgette": return "/src/assets/saree-georgette.jpg";
-    case "chiffon": return "/src/assets/saree-chiffon.jpg";
-    default: return "/src/assets/saree-cotton.jpg";
+    case "silk": return sareeSilk;
+    case "cotton": return sareeCotton;
+    case "georgette": return sareeGeorgette;
+    case "chiffon": return sareeChiffon;
+    default: return sareeCotton;
   }
 };
 
@@ -347,7 +351,7 @@ const SareeInventory = () => {
           {filteredSarees.map((saree) => (
             <Card key={saree.id} className="bg-gradient-card shadow-card border-0 hover:shadow-elevated transition-shadow">
               <div className="relative h-32 overflow-hidden rounded-t-lg">
-                <img src={getSareeImage(saree.type)} alt={`${saree.type} saree - ${saree.design}`} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = "/src/assets/saree-cotton.jpg"; }} />
+                <img src={getSareeImage(saree.type)} alt={`${saree.type} saree - ${saree.design}`} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = sareeCotton; }} />
                 <div className="absolute top-2 right-2">
                   <Badge className={getStatusColor(saree.status)}>{saree.status.replace("-", " ")}</Badge>
                 </div>
