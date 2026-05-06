@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,71 +8,75 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { 
-  User,
-  Building,
-  Bell,
-  Shield,
-  Database,
-  Palette,
-  Save
-} from "lucide-react";
+import { Building, Bell, Shield, Database, Palette, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
 
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+interface Settings {
+  companyName: string;
+  companyAddress: string;
+  contactEmail: string;
+  contactPhone: string;
+  currency: string;
+  timezone: string;
+  notifications: { lowStock: boolean; newOrders: boolean; production: boolean; reports: boolean };
+  security: { twoFactor: boolean; sessionTimeout: number; passwordExpiry: number };
+  appearance: { darkMode: boolean; compactMode: boolean; animations: boolean };
+}
+
+const defaultSettings: Settings = {
+  companyName: "SareeFlow Manufacturing",
+  companyAddress: "123 Textile Street, Mumbai, Maharashtra",
+  contactEmail: "admin@sareeflow.com",
+  contactPhone: "+91 98765 43210",
+  currency: "INR",
+  timezone: "Asia/Kolkata",
+  notifications: { lowStock: true, newOrders: true, production: false, reports: true },
+  security: { twoFactor: false, sessionTimeout: 30, passwordExpiry: 90 },
+  appearance: { darkMode: false, compactMode: false, animations: true },
+};
+
 const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
   const { toast } = useToast();
-  const [settings, setSettings] = useState({
-    companyName: "SareeFlow Manufacturing",
-    companyAddress: "123 Textile Street, Mumbai, Maharashtra",
-    contactEmail: "admin@sareeflow.com",
-    contactPhone: "+91 98765 43210",
-    currency: "INR",
-    timezone: "Asia/Kolkata",
-    notifications: {
-      lowStock: true,
-      newOrders: true,
-      production: false,
-      reports: true
-    },
-    security: {
-      twoFactor: false,
-      sessionTimeout: 30,
-      passwordExpiry: 90
-    },
-    appearance: {
-      darkMode: false,
-      compactMode: false,
-      animations: true
-    }
+  const queryClient = useQueryClient();
+  const [settings, setSettings] = useState<Settings>(defaultSettings);
+
+  const { data } = useQuery<Settings>({
+    queryKey: ["settings"],
+    queryFn: () => api.get<Settings>("/settings"),
+    enabled: open,
   });
 
-  const handleSave = () => {
-    // Mock save functionality
-    toast({
-      title: "Settings Saved",
-      description: "Your settings have been updated successfully."
-    });
-    onOpenChange(false);
-  };
+  useEffect(() => {
+    if (data) setSettings({ ...defaultSettings, ...data });
+  }, [data]);
 
-  const updateSetting = (path: string, value: any) => {
-    setSettings(prev => {
-      const keys = path.split('.');
-      const newSettings = { ...prev };
-      let current: any = newSettings;
-      
+  const saveMutation = useMutation({
+    mutationFn: (body: Settings) => api.put<Settings>("/settings", body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      toast({ title: "Settings Saved", description: "Your settings have been updated successfully." });
+      onOpenChange(false);
+    },
+    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
+  const updateSetting = (path: string, value: unknown) => {
+    setSettings((prev) => {
+      const keys = path.split(".");
+      const next: Record<string, unknown> = { ...prev } as unknown as Record<string, unknown>;
+      let cur: Record<string, unknown> = next;
       for (let i = 0; i < keys.length - 1; i++) {
-        current[keys[i]] = { ...current[keys[i]] };
-        current = current[keys[i]];
+        cur[keys[i]] = { ...(cur[keys[i]] as Record<string, unknown>) };
+        cur = cur[keys[i]] as Record<string, unknown>;
       }
-      
-      current[keys[keys.length - 1]] = value;
-      return newSettings;
+      cur[keys[keys.length - 1]] = value;
+      return next as unknown as Settings;
     });
   };
 
@@ -80,86 +85,32 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Shield className="w-5 h-5" />
-            System Settings
+            <Shield className="w-5 h-5" /> System Settings
           </DialogTitle>
         </DialogHeader>
-        
+
         <Tabs defaultValue="company" className="flex-1 overflow-hidden">
           <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="company" className="flex items-center gap-2">
-              <Building className="w-4 h-4" />
-              Company
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-2">
-              <Bell className="w-4 h-4" />
-              Notifications
-            </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center gap-2">
-              <Shield className="w-4 h-4" />
-              Security
-            </TabsTrigger>
-            <TabsTrigger value="data" className="flex items-center gap-2">
-              <Database className="w-4 h-4" />
-              Data
-            </TabsTrigger>
-            <TabsTrigger value="appearance" className="flex items-center gap-2">
-              <Palette className="w-4 h-4" />
-              Appearance
-            </TabsTrigger>
+            <TabsTrigger value="company"><Building className="w-4 h-4 mr-2" />Company</TabsTrigger>
+            <TabsTrigger value="notifications"><Bell className="w-4 h-4 mr-2" />Notifications</TabsTrigger>
+            <TabsTrigger value="security"><Shield className="w-4 h-4 mr-2" />Security</TabsTrigger>
+            <TabsTrigger value="data"><Database className="w-4 h-4 mr-2" />Data</TabsTrigger>
+            <TabsTrigger value="appearance"><Palette className="w-4 h-4 mr-2" />Appearance</TabsTrigger>
           </TabsList>
 
           <div className="overflow-y-auto max-h-96 mt-4">
             <TabsContent value="company" className="space-y-4">
               <Card>
-                <CardHeader>
-                  <CardTitle>Company Information</CardTitle>
-                </CardHeader>
+                <CardHeader><CardTitle>Company Information</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="companyName">Company Name</Label>
-                      <Input
-                        id="companyName"
-                        value={settings.companyName}
-                        onChange={(e) => updateSetting('companyName', e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="currency">Currency</Label>
-                      <Input
-                        id="currency"
-                        value={settings.currency}
-                        onChange={(e) => updateSetting('currency', e.target.value)}
-                      />
-                    </div>
+                    <div className="space-y-2"><Label>Company Name</Label><Input value={settings.companyName} onChange={(e) => updateSetting("companyName", e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Currency</Label><Input value={settings.currency} onChange={(e) => updateSetting("currency", e.target.value)} /></div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Address</Label>
-                    <Input
-                      id="address"
-                      value={settings.companyAddress}
-                      onChange={(e) => updateSetting('companyAddress', e.target.value)}
-                    />
-                  </div>
+                  <div className="space-y-2"><Label>Address</Label><Input value={settings.companyAddress} onChange={(e) => updateSetting("companyAddress", e.target.value)} /></div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Contact Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={settings.contactEmail}
-                        onChange={(e) => updateSetting('contactEmail', e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Contact Phone</Label>
-                      <Input
-                        id="phone"
-                        value={settings.contactPhone}
-                        onChange={(e) => updateSetting('contactPhone', e.target.value)}
-                      />
-                    </div>
+                    <div className="space-y-2"><Label>Contact Email</Label><Input type="email" value={settings.contactEmail} onChange={(e) => updateSetting("contactEmail", e.target.value)} /></div>
+                    <div className="space-y-2"><Label>Contact Phone</Label><Input value={settings.contactPhone} onChange={(e) => updateSetting("contactPhone", e.target.value)} /></div>
                   </div>
                 </CardContent>
               </Card>
@@ -167,24 +118,15 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
 
             <TabsContent value="notifications" className="space-y-4">
               <Card>
-                <CardHeader>
-                  <CardTitle>Notification Preferences</CardTitle>
-                </CardHeader>
+                <CardHeader><CardTitle>Notification Preferences</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   {Object.entries(settings.notifications).map(([key, value]) => (
                     <div key={key} className="flex items-center justify-between">
                       <div className="space-y-0.5">
-                        <div className="text-sm font-medium">
-                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Receive notifications for {key.toLowerCase()} events
-                        </div>
+                        <div className="text-sm font-medium">{key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())}</div>
+                        <div className="text-xs text-muted-foreground">Receive notifications for {key.toLowerCase()} events</div>
                       </div>
-                      <Switch
-                        checked={value}
-                        onCheckedChange={(checked) => updateSetting(`notifications.${key}`, checked)}
-                      />
+                      <Switch checked={value} onCheckedChange={(c) => updateSetting(`notifications.${key}`, c)} />
                     </div>
                   ))}
                 </CardContent>
@@ -193,44 +135,19 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
 
             <TabsContent value="security" className="space-y-4">
               <Card>
-                <CardHeader>
-                  <CardTitle>Security Settings</CardTitle>
-                </CardHeader>
+                <CardHeader><CardTitle>Security Settings</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <div className="text-sm font-medium">Two-Factor Authentication</div>
-                      <div className="text-xs text-muted-foreground">
-                        Add an extra layer of security to your account
-                      </div>
+                      <div className="text-xs text-muted-foreground">Add an extra layer of security to your account</div>
                     </div>
-                    <Switch
-                      checked={settings.security.twoFactor}
-                      onCheckedChange={(checked) => updateSetting('security.twoFactor', checked)}
-                    />
+                    <Switch checked={settings.security.twoFactor} onCheckedChange={(c) => updateSetting("security.twoFactor", c)} />
                   </div>
-                  
                   <Separator />
-                  
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
-                      <Input
-                        id="sessionTimeout"
-                        type="number"
-                        value={settings.security.sessionTimeout}
-                        onChange={(e) => updateSetting('security.sessionTimeout', parseInt(e.target.value))}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="passwordExpiry">Password Expiry (days)</Label>
-                      <Input
-                        id="passwordExpiry"
-                        type="number"
-                        value={settings.security.passwordExpiry}
-                        onChange={(e) => updateSetting('security.passwordExpiry', parseInt(e.target.value))}
-                      />
-                    </div>
+                    <div className="space-y-2"><Label>Session Timeout (minutes)</Label><Input type="number" value={settings.security.sessionTimeout} onChange={(e) => updateSetting("security.sessionTimeout", parseInt(e.target.value))} /></div>
+                    <div className="space-y-2"><Label>Password Expiry (days)</Label><Input type="number" value={settings.security.passwordExpiry} onChange={(e) => updateSetting("security.passwordExpiry", parseInt(e.target.value))} /></div>
                   </div>
                 </CardContent>
               </Card>
@@ -238,59 +155,33 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
 
             <TabsContent value="data" className="space-y-4">
               <Card>
-                <CardHeader>
-                  <CardTitle>Data Management</CardTitle>
-                </CardHeader>
+                <CardHeader><CardTitle>Data Management</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <Button variant="outline" className="h-20 flex flex-col items-center gap-2">
-                      <Database className="w-6 h-6" />
-                      <div className="text-center">
-                        <div className="font-medium">Backup Data</div>
-                        <div className="text-xs text-muted-foreground">Export all data</div>
-                      </div>
-                    </Button>
-                    <Button variant="outline" className="h-20 flex flex-col items-center gap-2">
-                      <Database className="w-6 h-6" />
-                      <div className="text-center">
-                        <div className="font-medium">Import Data</div>
-                        <div className="text-xs text-muted-foreground">Import from file</div>
-                      </div>
-                    </Button>
+                    <Button variant="outline" className="h-20 flex flex-col items-center gap-2"><Database className="w-6 h-6" /><div className="text-center"><div className="font-medium">Backup Data</div><div className="text-xs text-muted-foreground">Export all data</div></div></Button>
+                    <Button variant="outline" className="h-20 flex flex-col items-center gap-2"><Database className="w-6 h-6" /><div className="text-center"><div className="font-medium">Import Data</div><div className="text-xs text-muted-foreground">Import from file</div></div></Button>
                   </div>
-                  
                   <Separator />
-                  
-                  <div className="text-sm text-muted-foreground">
-                    <strong>Note:</strong> Data operations may take some time to complete.
-                    Make sure to backup your data regularly.
-                  </div>
+                  <div className="text-sm text-muted-foreground"><strong>Note:</strong> Data operations may take some time to complete. Make sure to backup your data regularly.</div>
                 </CardContent>
               </Card>
             </TabsContent>
 
             <TabsContent value="appearance" className="space-y-4">
               <Card>
-                <CardHeader>
-                  <CardTitle>Appearance Settings</CardTitle>
-                </CardHeader>
+                <CardHeader><CardTitle>Appearance Settings</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   {Object.entries(settings.appearance).map(([key, value]) => (
                     <div key={key} className="flex items-center justify-between">
                       <div className="space-y-0.5">
-                        <div className="text-sm font-medium">
-                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                        </div>
+                        <div className="text-sm font-medium">{key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())}</div>
                         <div className="text-xs text-muted-foreground">
-                          {key === 'darkMode' && 'Switch between light and dark theme'}
-                          {key === 'compactMode' && 'Use a more compact interface layout'}
-                          {key === 'animations' && 'Enable interface animations and transitions'}
+                          {key === "darkMode" && "Switch between light and dark theme"}
+                          {key === "compactMode" && "Use a more compact interface layout"}
+                          {key === "animations" && "Enable interface animations and transitions"}
                         </div>
                       </div>
-                      <Switch
-                        checked={value}
-                        onCheckedChange={(checked) => updateSetting(`appearance.${key}`, checked)}
-                      />
+                      <Switch checked={value} onCheckedChange={(c) => updateSetting(`appearance.${key}`, c)} />
                     </div>
                   ))}
                 </CardContent>
@@ -300,13 +191,8 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
         </Tabs>
 
         <div className="flex justify-end gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSave} className="bg-gradient-primary">
-            <Save className="w-4 h-4 mr-2" />
-            Save Settings
-          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={() => saveMutation.mutate(settings)} className="bg-gradient-primary"><Save className="w-4 h-4 mr-2" />Save Settings</Button>
         </div>
       </DialogContent>
     </Dialog>
