@@ -51,6 +51,336 @@ const formatINDate = (iso: string): string => {
 
 const formatINR = (n: number): string => n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+// Company config (dummy — user can update later)
+const COMPANY = {
+  name: "SAREE MANUFACTURING CO.",
+  addr1: "SHOP 12, TEXTILE MARKET",
+  addr2: "RING ROAD, SURAT",
+  addr3: "DISTT. SURAT - 395002 GUJARAT",
+  mob: "9876543210",
+  msme: "MSME-UDYAM-GJ-24-0098765",
+  branch: "ADD : 45, SILK BAZAR, KATARGAM, SURAT - 395004",
+  gstin: "24ABCDE1234F1Z5",
+  state: "Gujarat",
+  stateCode: "24",
+  email: "info@sareemfg.com",
+  pan: "ABCDE1234F",
+  bank: "HDFC BANK C.C. A/C, SURAT",
+  acNo: "50200012345678",
+  ifsc: "HDFC0000123",
+  branchIfsc: "RING ROAD BRANCH & HDFC0000123",
+  hsn: "54071000",
+  jurisdiction: "SURAT",
+};
+
+const generateTaxInvoice = (sale: any, copyType: string) => {
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const mL = 8, mR = 8;
+  const innerW = pageW - mL - mR;
+
+  // Outer border
+  doc.setLineWidth(0.4);
+  doc.rect(mL, 8, innerW, pageH - 16);
+
+  // Top header bar
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text("TAX INVOICE", pageW / 2, 14, { align: "center" });
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.text(`(${copyType})`, pageW / 2, 18, { align: "center" });
+  doc.setFont("helvetica", "bold");
+  doc.text("e-Invoice", pageW - mR - 2, 14, { align: "right" });
+
+  let y = 22;
+  doc.line(mL, y, pageW - mR, y);
+
+  // IRN section
+  y += 4;
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "normal");
+  doc.text(`IRN       : ${sale.id.toLowerCase()}${"a".repeat(20)}-placeholder${"b".repeat(20)}`, mL + 2, y);
+  y += 3.5;
+  doc.text(`Ack No.   : 1${Date.now().toString().slice(-14)}`, mL + 2, y);
+  y += 3.5;
+  doc.text(`Ack Date  : ${formatINDate(sale.saleDate)}`, mL + 2, y);
+
+  y += 4;
+  doc.line(mL, y, pageW - mR, y);
+
+  // Seller block (left) + invoice details (right)
+  const sellerY = y + 2;
+  const midX = mL + innerW * 0.55;
+  doc.line(midX, y, midX, y + 50);
+
+  // Seller
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text(COMPANY.name, mL + 2, sellerY + 4);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  let sy = sellerY + 9;
+  [COMPANY.addr1, COMPANY.addr2, COMPANY.addr3,
+   `MOB.No.: ${COMPANY.mob}`, COMPANY.msme, COMPANY.branch,
+   `GSTIN/UIN: ${COMPANY.gstin}`,
+   `State Name : ${COMPANY.state}, Code : ${COMPANY.stateCode}`,
+   `E-Mail : ${COMPANY.email}`].forEach(line => {
+    doc.text(line, mL + 2, sy);
+    sy += 3.5;
+  });
+
+  // Invoice meta table on right
+  const rX = midX + 2;
+  const rW = pageW - mR - midX - 2;
+  let ry = y;
+  const drawCell = (label: string, value: string, h: number, valBold = false) => {
+    doc.rect(midX, ry, rW, h);
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.text(label, rX, ry + 3);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", valBold ? "bold" : "normal");
+    doc.text(value, rX, ry + 7);
+    ry += h;
+  };
+  // Two-column meta
+  const half = rW / 2;
+  const drawDoubleCell = (l1: string, v1: string, l2: string, v2: string, h: number) => {
+    doc.rect(midX, ry, half, h);
+    doc.rect(midX + half, ry, half, h);
+    doc.setFontSize(7); doc.setFont("helvetica", "normal");
+    doc.text(l1, midX + 2, ry + 3);
+    doc.text(l2, midX + half + 2, ry + 3);
+    doc.setFontSize(9); doc.setFont("helvetica", "bold");
+    doc.text(v1, midX + 2, ry + 7);
+    doc.text(v2, midX + half + 2, ry + 7);
+    ry += h;
+  };
+  drawDoubleCell("Invoice No.", sale.id, "Dated", formatINDate(sale.saleDate), 10);
+  drawDoubleCell("Delivery Note", "", "Mode/Terms of Payment", `${sale.paymentMethod.toUpperCase()} / ${sale.paymentTermMonths} Month(s)`, 10);
+  drawDoubleCell("Reference No. & Date.", "", "Other References", "", 10);
+  drawDoubleCell("Buyer's Order No.", "", "Dated", "", 10);
+  drawDoubleCell("Dispatch Doc No.", "", "Delivery Note Date", "", 10);
+
+  y = Math.max(sy + 1, ry);
+  doc.line(mL, y, pageW - mR, y);
+
+  // Consignee + Buyer
+  const cbY = y;
+  const cbH = 32;
+  doc.line(mL + innerW / 2, cbY, mL + innerW / 2, cbY + cbH);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.text("Consignee (Ship to)", mL + 2, cbY + 4);
+  doc.text("Buyer (Bill to)", mL + innerW / 2 + 2, cbY + 4);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text(sale.customerName.toUpperCase(), mL + 2, cbY + 10);
+  doc.text(sale.customerName.toUpperCase(), mL + innerW / 2 + 2, cbY + 10);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  ["Customer Address Line 1", "Customer City",
+   "GSTIN/UIN : 24XXXXX0000X1Z0",
+   "State Name : Gujarat, Code : 24"].forEach((line, i) => {
+    doc.text(line, mL + 2, cbY + 15 + i * 3.5);
+    doc.text(line, mL + innerW / 2 + 2, cbY + 15 + i * 3.5);
+  });
+
+  y = cbY + cbH;
+  doc.line(mL, y, pageW - mR, y);
+
+  // Items table
+  const taxableAmount = sale.totalRevenue - sale.returnAmount;
+  const cgst = +(taxableAmount * 0.025).toFixed(2);
+  const sgst = +(taxableAmount * 0.025).toFixed(2);
+  const subtotal = taxableAmount + cgst + sgst;
+  const grandTotal = Math.round(subtotal);
+  const roundOff = +(grandTotal - subtotal).toFixed(2);
+
+  const itemBody: any[] = [
+    [
+      { content: "1", styles: { halign: "center" } },
+      { content: sale.sareeType + " Saree", styles: { fontStyle: "bold" } },
+      { content: COMPANY.hsn, styles: { halign: "center" } },
+      { content: `${sale.quantity} Pcs`, styles: { halign: "right", fontStyle: "bold" } },
+      { content: formatINR(sale.sellingPrice), styles: { halign: "right" } },
+      { content: "Pcs", styles: { halign: "center" } },
+      { content: formatINR(sale.totalRevenue), styles: { halign: "right", fontStyle: "bold" } },
+    ],
+  ];
+  if (sale.returnedQuantity > 0) {
+    itemBody.push([
+      "", { content: "Less: Sales Return", styles: { fontStyle: "italic" } },
+      "", { content: `-${sale.returnedQuantity} Pcs`, styles: { halign: "right" } },
+      { content: formatINR(sale.sellingPrice), styles: { halign: "right" } },
+      { content: "Pcs", styles: { halign: "center" } },
+      { content: `(-)${formatINR(sale.returnAmount)}`, styles: { halign: "right" } },
+    ]);
+  }
+  itemBody.push(
+    ["", { content: "CGST ON SALE @ 2.5%", styles: { fontStyle: "italic" } },
+      "", "", { content: "2.50 %", styles: { halign: "right" } }, "",
+      { content: formatINR(cgst), styles: { halign: "right", fontStyle: "bold" } }],
+    ["", { content: "SGST ON SALE @ 2.5%", styles: { fontStyle: "italic" } },
+      "", "", { content: "2.50 %", styles: { halign: "right" } }, "",
+      { content: formatINR(sgst), styles: { halign: "right", fontStyle: "bold" } }],
+    ["", { content: "Less : Round Off", styles: { fontStyle: "italic" } },
+      "", "", "", "",
+      { content: (roundOff < 0 ? `(-)${formatINR(Math.abs(roundOff))}` : formatINR(roundOff)), styles: { halign: "right" } }],
+  );
+
+  autoTable(doc, {
+    startY: y,
+    margin: { left: mL, right: mR },
+    head: [[
+      { content: "Sl\nNo.", styles: { halign: "center" } },
+      { content: "Description of Goods", styles: { halign: "center" } },
+      { content: "HSN/SAC", styles: { halign: "center" } },
+      { content: "Quantity", styles: { halign: "center" } },
+      { content: "Rate", styles: { halign: "center" } },
+      { content: "per", styles: { halign: "center" } },
+      { content: "Amount", styles: { halign: "center" } },
+    ]],
+    body: itemBody,
+    foot: [[
+      "", { content: "Total", styles: { fontStyle: "bold", halign: "right" } }, "",
+      { content: `${sale.quantity - sale.returnedQuantity} Pcs`, styles: { fontStyle: "bold", halign: "right" } },
+      "", "",
+      { content: `Rs. ${formatINR(grandTotal)}`, styles: { fontStyle: "bold", halign: "right" } },
+    ]],
+    theme: "grid",
+    styles: { fontSize: 8, cellPadding: 1.5, textColor: 0, lineColor: 0, lineWidth: 0.1 },
+    headStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: "bold", lineColor: 0 },
+    footStyles: { fillColor: [240, 240, 240], textColor: 0, lineColor: 0 },
+    columnStyles: {
+      0: { cellWidth: 10 },
+      1: { cellWidth: 60 },
+      2: { cellWidth: 20 },
+      3: { cellWidth: 25 },
+      4: { cellWidth: 22 },
+      5: { cellWidth: 14 },
+      6: { cellWidth: "auto" },
+    },
+  });
+
+  y = (doc as any).lastAutoTable.finalY;
+
+  // Amount in words
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.rect(mL, y, innerW, 10);
+  doc.text("Amount Chargeable (in words)", mL + 2, y + 4);
+  doc.text("E. & O.E", pageW - mR - 2, y + 4, { align: "right" });
+  doc.setFont("helvetica", "bold");
+  doc.text(numberToWordsIndian(grandTotal), mL + 2, y + 8);
+  y += 10;
+
+  // HSN tax summary
+  autoTable(doc, {
+    startY: y,
+    margin: { left: mL, right: mR },
+    head: [
+      [
+        { content: "HSN/SAC", rowSpan: 2, styles: { valign: "middle", halign: "center" } },
+        { content: "Taxable\nValue", rowSpan: 2, styles: { valign: "middle", halign: "center" } },
+        { content: "CGST", colSpan: 2, styles: { halign: "center" } },
+        { content: "SGST/UTGST", colSpan: 2, styles: { halign: "center" } },
+        { content: "Total\nTax Amount", rowSpan: 2, styles: { valign: "middle", halign: "center" } },
+      ],
+      [
+        { content: "Rate", styles: { halign: "center" } },
+        { content: "Amount", styles: { halign: "center" } },
+        { content: "Rate", styles: { halign: "center" } },
+        { content: "Amount", styles: { halign: "center" } },
+      ],
+    ],
+    body: [[
+      { content: COMPANY.hsn, styles: { halign: "center" } },
+      { content: formatINR(taxableAmount), styles: { halign: "right" } },
+      { content: "2.50%", styles: { halign: "center" } },
+      { content: formatINR(cgst), styles: { halign: "right" } },
+      { content: "2.50%", styles: { halign: "center" } },
+      { content: formatINR(sgst), styles: { halign: "right" } },
+      { content: formatINR(cgst + sgst), styles: { halign: "right" } },
+    ]],
+    foot: [[
+      { content: "Total", styles: { halign: "right", fontStyle: "bold" } },
+      { content: formatINR(taxableAmount), styles: { halign: "right", fontStyle: "bold" } },
+      "", { content: formatINR(cgst), styles: { halign: "right", fontStyle: "bold" } },
+      "", { content: formatINR(sgst), styles: { halign: "right", fontStyle: "bold" } },
+      { content: formatINR(cgst + sgst), styles: { halign: "right", fontStyle: "bold" } },
+    ]],
+    theme: "grid",
+    styles: { fontSize: 8, cellPadding: 1.5, textColor: 0, lineColor: 0, lineWidth: 0.1 },
+    headStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: "bold" },
+    footStyles: { fillColor: [240, 240, 240], textColor: 0 },
+  });
+
+  y = (doc as any).lastAutoTable.finalY;
+
+  // Tax in words
+  doc.rect(mL, y, innerW, 8);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.text("Tax Amount (in words) :", mL + 2, y + 4);
+  doc.setFont("helvetica", "bold");
+  doc.text(numberToWordsIndian(cgst + sgst), mL + 40, y + 4);
+  y += 8;
+
+  // PAN
+  doc.rect(mL, y, innerW, 6);
+  doc.setFont("helvetica", "normal");
+  doc.text("Company's PAN :", mL + 2, y + 4);
+  doc.setFont("helvetica", "bold");
+  doc.text(COMPANY.pan, mL + 32, y + 4);
+  y += 6;
+
+  // Declaration + Bank
+  const decH = 30;
+  doc.rect(mL, y, innerW / 2, decH);
+  doc.rect(mL + innerW / 2, y, innerW / 2, decH);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.text("Declaration", mL + 2, y + 4);
+  doc.text("Company's Bank Details", mL + innerW / 2 + 2, y + 4);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.text("1. We declare that this invoice shows the actual price of", mL + 2, y + 9);
+  doc.text("    the goods described and that all particulars are true and correct.", mL + 2, y + 12.5);
+  doc.text(`2. Payment within ${sale.paymentTermMonths * 30} days from bill date.`, mL + 2, y + 16);
+
+  doc.setFontSize(8);
+  doc.text(`Bank Name      : `, mL + innerW / 2 + 2, y + 9);
+  doc.setFont("helvetica", "bold");
+  doc.text(COMPANY.bank, mL + innerW / 2 + 25, y + 9);
+  doc.setFont("helvetica", "normal");
+  doc.text(`A/c No.            : `, mL + innerW / 2 + 2, y + 13);
+  doc.setFont("helvetica", "bold");
+  doc.text(COMPANY.acNo, mL + innerW / 2 + 25, y + 13);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Branch & IFS Code : `, mL + innerW / 2 + 2, y + 17);
+  doc.setFont("helvetica", "bold");
+  doc.text(COMPANY.branchIfsc, mL + innerW / 2 + 30, y + 17);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.text(`for ${COMPANY.name}`, pageW - mR - 2, y + decH - 8, { align: "right" });
+  doc.text("Authorised Signatory", pageW - mR - 2, y + decH - 2, { align: "right" });
+
+  y += decH;
+
+  // Footer
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "italic");
+  doc.text(`SUBJECT TO ${COMPANY.jurisdiction} JURISDICTION`, pageW / 2, y + 4, { align: "center" });
+  doc.text("This is a Computer Generated Invoice", pageW / 2, y + 8, { align: "center" });
+
+  doc.save(`Invoice-${sale.id}-${sale.customerName.replace(/\s+/g, "_")}.pdf`);
+};
+
 interface Sale {
   id: string;
   sareeId: string;
