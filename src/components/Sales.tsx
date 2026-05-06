@@ -6,8 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ShoppingCart, Plus, Search, Edit, Trash2, TrendingUp, IndianRupee, Calendar } from "lucide-react";
+import { ShoppingCart, Plus, Search, Edit, Trash2, TrendingUp, IndianRupee, Calendar, FileDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface Sale {
   id: string;
@@ -242,6 +244,100 @@ const Sales = () => {
       title: "Sale Deleted",
       description: "Sale record has been removed from the system.",
       variant: "destructive"
+    });
+  };
+
+  const handleDownloadBill = (sale: Sale) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Header
+    doc.setFillColor(99, 102, 241);
+    doc.rect(0, 0, pageWidth, 30, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("Saree Manufacturing Co.", pageWidth / 2, 15, { align: "center" });
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text("Tax Invoice / Bill", pageWidth / 2, 23, { align: "center" });
+
+    // Invoice meta
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    doc.text(`Invoice No: ${sale.id}`, 14, 42);
+    doc.text(`Date: ${new Date(sale.saleDate).toLocaleDateString()}`, pageWidth - 14, 42, { align: "right" });
+
+    // Bill To
+    doc.setFont("helvetica", "bold");
+    doc.text("Bill To:", 14, 54);
+    doc.setFont("helvetica", "normal");
+    doc.text(sale.customerName, 14, 61);
+
+    // Payment info
+    doc.setFont("helvetica", "bold");
+    doc.text("Payment Details:", pageWidth - 14, 54, { align: "right" });
+    doc.setFont("helvetica", "normal");
+    doc.text(`Method: ${sale.paymentMethod.toUpperCase()}`, pageWidth - 14, 61, { align: "right" });
+    doc.text(`Term: ${sale.paymentTermMonths} month(s)`, pageWidth - 14, 68, { align: "right" });
+
+    // Items table
+    const body: any[] = [
+      [
+        sale.sareeId,
+        sale.sareeType,
+        sale.quantity.toString(),
+        `Rs. ${sale.sellingPrice.toLocaleString()}`,
+        `Rs. ${sale.totalRevenue.toLocaleString()}`,
+      ],
+    ];
+    if (sale.returnedQuantity > 0) {
+      body.push([
+        "",
+        "Returned",
+        `-${sale.returnedQuantity}`,
+        `Rs. ${sale.sellingPrice.toLocaleString()}`,
+        `- Rs. ${sale.returnAmount.toLocaleString()}`,
+      ]);
+    }
+
+    autoTable(doc, {
+      startY: 80,
+      head: [["Saree ID", "Type", "Qty", "Unit Price", "Amount"]],
+      body,
+      theme: "striped",
+      headStyles: { fillColor: [99, 102, 241] },
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY || 100;
+
+    // Totals
+    const totalsX = pageWidth - 80;
+    let y = finalY + 10;
+    doc.setFontSize(11);
+    doc.text("Gross Total:", totalsX, y);
+    doc.text(`Rs. ${sale.totalRevenue.toLocaleString()}`, pageWidth - 14, y, { align: "right" });
+    if (sale.returnAmount > 0) {
+      y += 7;
+      doc.text("Returns:", totalsX, y);
+      doc.text(`- Rs. ${sale.returnAmount.toLocaleString()}`, pageWidth - 14, y, { align: "right" });
+    }
+    y += 9;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Net Payable:", totalsX, y);
+    doc.text(`Rs. ${sale.netRevenue.toLocaleString()}`, pageWidth - 14, y, { align: "right" });
+
+    // Footer
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(9);
+    doc.setTextColor(120, 120, 120);
+    doc.text("Thank you for your business!", pageWidth / 2, 285, { align: "center" });
+
+    doc.save(`Invoice-${sale.id}-${sale.customerName.replace(/\s+/g, "_")}.pdf`);
+    toast({
+      title: "Bill Downloaded",
+      description: `Invoice for ${sale.customerName} has been generated.`,
     });
   };
 
@@ -557,6 +653,14 @@ const Sales = () => {
                       onClick={() => handleEdit(sale)}
                     >
                       <Edit className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDownloadBill(sale)}
+                      title="Download Bill"
+                    >
+                      <FileDown className="w-3 h-3" />
                     </Button>
                     <Button 
                       size="sm" 
