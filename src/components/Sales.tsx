@@ -253,33 +253,38 @@ const Sales = () => {
 
     // Header
     doc.setFillColor(99, 102, 241);
-    doc.rect(0, 0, pageWidth, 30, "F");
+    doc.rect(0, 0, pageWidth, 40, "F");
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(20);
+    doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
-    doc.text("Saree Manufacturing Co.", pageWidth / 2, 15, { align: "center" });
-    doc.setFontSize(11);
+    doc.text("Saree Manufacturing Co.", pageWidth / 2, 13, { align: "center" });
+    doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.text("Tax Invoice / Bill", pageWidth / 2, 23, { align: "center" });
+    doc.text("123, Textile Market Road, Surat, Gujarat - 395002", pageWidth / 2, 20, { align: "center" });
+    doc.text("Phone: +91 98765 43210  |  Email: info@sareemfg.com", pageWidth / 2, 26, { align: "center" });
+    doc.text("GSTIN: 24ABCDE1234F1Z5  |  PAN: ABCDE1234F", pageWidth / 2, 32, { align: "center" });
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("TAX INVOICE", pageWidth / 2, 38, { align: "center" });
 
     // Invoice meta
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(11);
-    doc.text(`Invoice No: ${sale.id}`, 14, 42);
-    doc.text(`Date: ${new Date(sale.saleDate).toLocaleDateString()}`, pageWidth - 14, 42, { align: "right" });
+    doc.text(`Invoice No: ${sale.id}`, 14, 50);
+    doc.text(`Date: ${new Date(sale.saleDate).toLocaleDateString()}`, pageWidth - 14, 50, { align: "right" });
 
     // Bill To
     doc.setFont("helvetica", "bold");
-    doc.text("Bill To:", 14, 54);
+    doc.text("Bill To:", 14, 62);
     doc.setFont("helvetica", "normal");
-    doc.text(sale.customerName, 14, 61);
+    doc.text(sale.customerName, 14, 69);
 
     // Payment info
     doc.setFont("helvetica", "bold");
-    doc.text("Payment Details:", pageWidth - 14, 54, { align: "right" });
+    doc.text("Payment Details:", pageWidth - 14, 62, { align: "right" });
     doc.setFont("helvetica", "normal");
-    doc.text(`Method: ${sale.paymentMethod.toUpperCase()}`, pageWidth - 14, 61, { align: "right" });
-    doc.text(`Term: ${sale.paymentTermMonths} month(s)`, pageWidth - 14, 68, { align: "right" });
+    doc.text(`Method: ${sale.paymentMethod.toUpperCase()}`, pageWidth - 14, 69, { align: "right" });
+    doc.text(`Term: ${sale.paymentTermMonths} month(s)`, pageWidth - 14, 76, { align: "right" });
 
     // Items table
     const body: any[] = [
@@ -302,7 +307,7 @@ const Sales = () => {
     }
 
     autoTable(doc, {
-      startY: 80,
+      startY: 88,
       head: [["Saree ID", "Type", "Qty", "Unit Price", "Amount"]],
       body,
       theme: "striped",
@@ -312,6 +317,11 @@ const Sales = () => {
     const finalY = (doc as any).lastAutoTable.finalY || 100;
 
     // Totals
+    const taxableAmount = sale.totalRevenue - sale.returnAmount;
+    const cgst = +(taxableAmount * 0.025).toFixed(2);
+    const sgst = +(taxableAmount * 0.025).toFixed(2);
+    const grandTotal = +(taxableAmount + cgst + sgst).toFixed(2);
+
     const totalsX = pageWidth - 80;
     let y = finalY + 10;
     doc.setFontSize(11);
@@ -321,12 +331,21 @@ const Sales = () => {
       y += 7;
       doc.text("Returns:", totalsX, y);
       doc.text(`- Rs. ${sale.returnAmount.toLocaleString()}`, pageWidth - 14, y, { align: "right" });
+      y += 7;
+      doc.text("Taxable Amount:", totalsX, y);
+      doc.text(`Rs. ${taxableAmount.toLocaleString()}`, pageWidth - 14, y, { align: "right" });
     }
+    y += 7;
+    doc.text("CGST @ 2.5%:", totalsX, y);
+    doc.text(`Rs. ${cgst.toLocaleString()}`, pageWidth - 14, y, { align: "right" });
+    y += 7;
+    doc.text("SGST @ 2.5%:", totalsX, y);
+    doc.text(`Rs. ${sgst.toLocaleString()}`, pageWidth - 14, y, { align: "right" });
     y += 9;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
-    doc.text("Net Payable:", totalsX, y);
-    doc.text(`Rs. ${sale.netRevenue.toLocaleString()}`, pageWidth - 14, y, { align: "right" });
+    doc.text("Grand Total:", totalsX, y);
+    doc.text(`Rs. ${grandTotal.toLocaleString()}`, pageWidth - 14, y, { align: "right" });
 
     // Footer
     doc.setFont("helvetica", "italic");
