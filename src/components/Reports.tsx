@@ -31,6 +31,9 @@ import {
   Area,
 } from "recharts";
 import { api } from "@/lib/api";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { useToast } from "@/hooks/use-toast";
 
 interface ReportData {
   period: string;
@@ -54,6 +57,7 @@ interface ReportData {
 const Reports = () => {
   const [selectedPeriod, setSelectedPeriod] = useState("monthly");
   const [selectedReport] = useState("overview");
+  const { toast } = useToast();
 
   const { data, isLoading } = useQuery<ReportData>({
     queryKey: ["reports", selectedPeriod],
@@ -63,8 +67,114 @@ const Reports = () => {
   const [quickReportDialog, setQuickReportDialog] = useState(false);
   const [selectedQuickReport, setSelectedQuickReport] = useState("");
 
-  const exportReport = (format: string) => {
-    alert(`Exporting ${selectedReport} report as ${format.toUpperCase()}`);
+  const downloadFile = (filename: string, content: string, mime: string) => {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const toCSV = (rows: (string | number)[][]) =>
+    rows
+      .map((r) =>
+        r
+          .map((v) => {
+            const s = String(v ?? "");
+            return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+          })
+          .join(","),
+      )
+      .join("\n");
+
+  const getReportRows = (reportType: string): { title: string; rows: (string | number)[][] } => {
+    if (!data) return { title: reportType, rows: [] };
+    switch (reportType) {
+      case "Financial Report":
+        return {
+          title: "Financial Report",
+          rows: [
+            [selectedPeriod === "quarterly" ? "Quarter" : "Month", "Sales", "Cost", "Profit"],
+            ...currentData.map((d: any) => [d[xKey], d.sales, d.cost, d.profit]),
+            ["Total", data.kpi.totalRevenue, data.kpi.totalCost, data.kpi.totalProfit],
+          ],
+        };
+      case "Production Report":
+        return {
+          title: "Production Report",
+          rows: [
+            [selectedPeriod === "quarterly" ? "Quarter" : "Month", "Production"],
+            ...currentData.map((d: any) => [d[xKey], d.production]),
+            ["Total", "", data.kpi.totalProduction],
+          ],
+        };
+      case "HR Report":
+        return {
+          title: "HR Report",
+          rows: [
+            ["Month", "Productivity", "Efficiency"],
+            ...data.workerProductivity.map((w) => [w.month, w.productivity, w.efficiency]),
+          ],
+        };
+      case "Inventory Report":
+        return {
+          title: "Inventory Report",
+          rows: [
+            ["Saree Type", "Quantity", "Percentage"],
+            ...data.productionByType.map((p) => [p.name, p.value, `${p.percentage}%`]),
+          ],
+        };
+      default:
+        return {
+          title: "Overview Report",
+          rows: [
+            ["Metric", "Value"],
+            ["Total Revenue", data.kpi.totalRevenue],
+            ["Total Cost", data.kpi.totalCost],
+            ["Total Profit", data.kpi.totalProfit],
+            ["Profit Margin %", data.kpi.profitMargin],
+            ["Total Production", data.kpi.totalProduction],
+            ["Total Submitted", data.kpi.totalSubmitted],
+            ["Average Efficiency %", data.kpi.averageEfficiency],
+            ["Worker Productivity", data.kpi.workerProductivity],
+          ],
+        };
+    }
+  };
+
+  const exportReport = (format: string, reportType?: string) => {
+    if (!data) return;
+    const { title, rows } = getReportRows(reportType || "Overview Report");
+    const safeName = title.replace(/\s+/g, "_");
+    if (format === "csv") {
+      downloadFile(`${safeName}_${selectedPeriod}.csv`, toCSV(rows), "text/csv;charset=utf-8;");
+    } else {
+      const doc = new jsPDF();
+      doc.setFillColor(37, 99, 235);
+      doc.rect(0, 0, 210, 25, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(16);
+      doc.text("Saree Manufacturing Co.", 14, 12);
+      doc.setFontSize(11);
+      doc.text(title, 14, 20);
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(10);
+      doc.text(`Period: ${selectedPeriod}`, 14, 33);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 39);
+      autoTable(doc, {
+        startY: 45,
+        head: [rows[0].map(String)],
+        body: rows.slice(1).map((r) => r.map(String)),
+        headStyles: { fillColor: [37, 99, 235] },
+        styles: { fontSize: 9 },
+      });
+      doc.save(`${safeName}_${selectedPeriod}.pdf`);
+    }
+    toast({ title: "Downloaded", description: `${title} (${format.toUpperCase()})` });
   };
 
   const handleQuickReportClick = (reportType: string) => {
@@ -268,8 +378,8 @@ const Reports = () => {
               {selectedQuickReport === "Inventory Report" && "Complete inventory overview including stock levels, material usage, and reorder requirements."}
             </p>
             <div className="flex gap-3">
-              <Button className="flex-1" onClick={() => exportReport("pdf")}><Download className="w-4 h-4 mr-2" />Generate PDF</Button>
-              <Button variant="outline" className="flex-1" onClick={() => exportReport("csv")}><Download className="w-4 h-4 mr-2" />Export CSV</Button>
+              <Button className="flex-1" onClick={() => exportReport("pdf", selectedQuickReport)}><Download className="w-4 h-4 mr-2" />Generate PDF</Button>
+              <Button variant="outline" className="flex-1" onClick={() => exportReport("csv", selectedQuickReport)}><Download className="w-4 h-4 mr-2" />Export CSV</Button>
             </div>
           </div>
         </DialogContent>
