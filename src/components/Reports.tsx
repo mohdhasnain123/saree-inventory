@@ -205,7 +205,7 @@ const Reports = () => {
   return (
     <div className="space-y-6 min-w-0">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
+        <div className="min-w-0 pl-12 lg:pl-0">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground break-words">Reports & Analytics</h1>
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">Comprehensive business insights and performance metrics</p>
         </div>
