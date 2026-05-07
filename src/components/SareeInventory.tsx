@@ -357,16 +357,8 @@ const SareeInventory = () => {
                       <Badge key={i} variant="outline" className="text-xs">{c.color}: {c.quantity}</Badge>
                     ))}
                   </div>
-                  <p className="text-sm text-muted-foreground flex items-center gap-1 mt-2">
-                    <Calendar className="w-3 h-3" />
-                    Manufactured: {saree.dateManufactured ? new Date(saree.dateManufactured).toLocaleDateString() : "-"}
-                  </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Quantity</p>
-                    <p className="font-medium text-foreground">{getSareeQuantity(saree)} pieces</p>
-                  </div>
                   <div>
                     <p className="text-muted-foreground">Selling Price</p>
                     <p className="font-medium text-foreground">₹{saree.sellingPrice}</p>
