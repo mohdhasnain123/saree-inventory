@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Shirt, Plus, Search, Edit, Trash2, Calendar, IndianRupee, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Saree {
   id: string;
@@ -32,6 +33,7 @@ interface FinishingCosts {
 const SareeInventory = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { canWrite } = useAuth();
 
   const { data: sarees = [], isLoading } = useQuery<Saree[]>({
     queryKey: ["sarees"],
@@ -191,13 +193,15 @@ const SareeInventory = () => {
               {lowStockCount} Low Stock
             </Badge>
           )}
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-primary shadow-manufacturing">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Saree
-              </Button>
-            </DialogTrigger>
+          <Dialog open={canWrite && isDialogOpen} onOpenChange={(open) => canWrite && setIsDialogOpen(open)}>
+            {canWrite && (
+              <DialogTrigger asChild>
+                <Button className="bg-gradient-primary shadow-manufacturing">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Saree
+                </Button>
+              </DialogTrigger>
+            )}
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>
@@ -377,10 +381,12 @@ const SareeInventory = () => {
                     <div className="text-xs text-muted-foreground">
                       Cost: ₹{saree.costPrice} | Selling: ₹{saree.sellingPrice}
                     </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => handleEdit(saree)}><Edit className="w-3 h-3" /></Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleDelete(saree.id)}><Trash2 className="w-3 h-3" /></Button>
-                    </div>
+                    {canWrite && (
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => handleEdit(saree)}><Edit className="w-3 h-3" /></Button>
+                        <Button size="sm" variant="destructive" onClick={() => handleDelete(saree.id)}><Trash2 className="w-3 h-3" /></Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>

@@ -1,18 +1,23 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { 
-  LayoutDashboard, 
-  Package, 
-  Shirt, 
-  Users, 
-  Settings, 
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/components/ui/use-toast";
+import {
+  LayoutDashboard,
+  Package,
+  Shirt,
+  Users,
+  Settings,
   ShoppingCart,
   TrendingUp,
   Factory,
   Scissors,
   Menu,
-  X
+  X,
+  LogOut,
+  UserCircle2,
 } from "lucide-react";
 
 interface NavigationProps {
@@ -22,6 +27,14 @@ interface NavigationProps {
 
 const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    toast({ title: "Signed out", description: "See you again soon." });
+    navigate("/login", { replace: true });
+  };
 
   const navigationItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -97,10 +110,32 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
           </nav>
 
           {/* Footer */}
-          <div className="p-4 border-t border-border">
+          <div className="p-4 border-t border-border space-y-3">
+            {user && (
+              <div className="flex items-center gap-2 px-1">
+                <UserCircle2 className="w-5 h-5 text-muted-foreground" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {user.name || user.username}
+                  </p>
+                  <p className="text-xs text-muted-foreground capitalize truncate">
+                    {user.role}
+                  </p>
+                </div>
+              </div>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full justify-start gap-2"
+              onClick={handleLogout}
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </Button>
             <div className="text-center">
               <p className="text-xs text-muted-foreground">Version 1.0.0</p>
-              <p className="text-xs text-muted-foreground mt-1">© 2024 SareeFlow</p>
+              <p className="text-xs text-muted-foreground mt-1">© 2026 SareeFlow</p>
             </div>
           </div>
         </div>

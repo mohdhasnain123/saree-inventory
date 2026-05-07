@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Package, Plus, Search, Edit, Trash2, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Material {
   id: string;
@@ -27,6 +28,7 @@ interface Material {
 const RawMaterials = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { canWrite } = useAuth();
 
   const { data: materials = [], isLoading } = useQuery<Material[]>({
     queryKey: ["materials"],
@@ -171,13 +173,15 @@ const RawMaterials = () => {
               {lowStockCount} Low Stock Alert
             </Badge>
           )}
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-primary shadow-manufacturing">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Material
-              </Button>
-            </DialogTrigger>
+          <Dialog open={canWrite && isDialogOpen} onOpenChange={(open) => canWrite && setIsDialogOpen(open)}>
+            {canWrite && (
+              <DialogTrigger asChild>
+                <Button className="bg-gradient-primary shadow-manufacturing">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Material
+                </Button>
+              </DialogTrigger>
+            )}
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>
@@ -325,14 +329,16 @@ const RawMaterials = () => {
                       <p className="text-muted-foreground text-sm">Total Value</p>
                       <p className="font-bold text-lg text-foreground">₹{material.totalValue.toLocaleString()}</p>
                     </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => handleEdit(material)}>
-                        <Edit className="w-3 h-3" />
-                      </Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleDelete(material.id)}>
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
+                    {canWrite && (
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => handleEdit(material)}>
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => handleDelete(material.id)}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>

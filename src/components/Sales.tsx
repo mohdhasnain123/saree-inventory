@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 const numberToWordsIndian = (num: number): string => {
   const a = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
@@ -379,6 +380,7 @@ interface Sale {
 const Sales = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { canWrite } = useAuth();
 
   const { data: sales = [], isLoading } = useQuery<Sale[]>({
     queryKey: ["sales"],
@@ -534,13 +536,15 @@ const Sales = () => {
           <p className="text-muted-foreground mt-1">Track sales performance and profit margins</p>
         </div>
         <div className="flex items-center gap-3">
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-primary shadow-manufacturing">
-                <Plus className="w-4 h-4 mr-2" />
-                Record Sale
-              </Button>
-            </DialogTrigger>
+          <Dialog open={canWrite && isDialogOpen} onOpenChange={(open) => canWrite && setIsDialogOpen(open)}>
+            {canWrite && (
+              <DialogTrigger asChild>
+                <Button className="bg-gradient-primary shadow-manufacturing">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Record Sale
+                </Button>
+              </DialogTrigger>
+            )}
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>{editingSale ? "Edit Sale" : "Record New Sale"}</DialogTitle>
@@ -734,9 +738,13 @@ const Sales = () => {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => handleEdit(sale)}><Edit className="w-3 h-3" /></Button>
+                      {canWrite && (
+                        <Button size="sm" variant="outline" onClick={() => handleEdit(sale)}><Edit className="w-3 h-3" /></Button>
+                      )}
                       <Button size="sm" variant="outline" onClick={() => handleDownloadBill(sale)} title="Download Bill"><FileDown className="w-3 h-3" /></Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleDelete(sale.id)}><Trash2 className="w-3 h-3" /></Button>
+                      {canWrite && (
+                        <Button size="sm" variant="destructive" onClick={() => handleDelete(sale.id)}><Trash2 className="w-3 h-3" /></Button>
+                      )}
                     </div>
                   </div>
                 </div>

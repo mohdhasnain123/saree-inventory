@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Settings, Plus, Search, Edit, Trash2, CheckCircle, AlertTriangle, XCircle, Wrench, Calendar, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Machine {
   id: string;
@@ -34,6 +35,7 @@ interface Machine {
 const Machines = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { canWrite } = useAuth();
 
   const { data: machines = [], isLoading } = useQuery<Machine[]>({
     queryKey: ["machines"],
@@ -190,10 +192,12 @@ const Machines = () => {
           <h1 className="text-3xl font-bold text-foreground">Machine Management</h1>
           <p className="text-muted-foreground mt-1">Monitor and maintain your manufacturing equipment</p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={(o) => { setIsAddDialogOpen(o); if (!o) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-primary shadow-manufacturing" onClick={() => resetForm()}><Plus className="w-4 h-4 mr-2" />Add Machine</Button>
-          </DialogTrigger>
+        <Dialog open={canWrite && isAddDialogOpen} onOpenChange={(o) => { if (!canWrite) return; setIsAddDialogOpen(o); if (!o) resetForm(); }}>
+          {canWrite && (
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-primary shadow-manufacturing" onClick={() => resetForm()}><Plus className="w-4 h-4 mr-2" />Add Machine</Button>
+            </DialogTrigger>
+          )}
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader><DialogTitle>{editingMachine ? "Edit Machine" : "Add New Machine"}</DialogTitle></DialogHeader>
             <div className="grid gap-4 py-4">
@@ -324,10 +328,12 @@ const Machines = () => {
                       <p className="font-semibold text-success">₹{(machine.weeklyProductionMeters * machine.ratePerMeter).toLocaleString()}</p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setEditingMachine(machine)}><Edit className="w-4 h-4" /></Button>
-                    <Button variant="outline" size="sm" onClick={() => deleteMutation.mutate(machine.id)} className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4" /></Button>
-                  </div>
+                  {canWrite && (
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setEditingMachine(machine)}><Edit className="w-4 h-4" /></Button>
+                      <Button variant="outline" size="sm" onClick={() => deleteMutation.mutate(machine.id)} className="text-destructive hover:text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                    </div>
+                  )}
                 </div>
                 {machine.notes && (<p className="text-sm text-muted-foreground italic mt-3 pt-3 border-t border-border">{machine.notes}</p>)}
               </CardContent>

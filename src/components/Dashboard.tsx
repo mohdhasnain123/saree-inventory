@@ -28,6 +28,7 @@ import { useState } from "react";
 import SettingsDialog from "./SettingsDialog";
 import NewProductionDialog from "./NewProductionDialog";
 import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface DashboardData {
   stats: {
@@ -52,6 +53,7 @@ interface DashboardData {
 const Dashboard = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProductionOpen, setIsProductionOpen] = useState(false);
+  const { canWrite } = useAuth();
 
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ["dashboard"],
@@ -77,14 +79,16 @@ const Dashboard = () => {
             Monitor your production, inventory, and sales performance
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 sm:gap-3">
-          <Button variant="outline" size="sm" className="shadow-card" onClick={() => setIsSettingsOpen(true)}>
-            <Settings className="w-4 h-4 mr-2" /> Settings
-          </Button>
-          <Button size="sm" className="bg-gradient-primary shadow-manufacturing" onClick={() => setIsProductionOpen(true)}>
-            <Factory className="w-4 h-4 mr-2" /> New Production
-          </Button>
-        </div>
+        {canWrite && (
+          <div className="flex flex-wrap gap-2 sm:gap-3">
+            <Button variant="outline" size="sm" className="shadow-card" onClick={() => setIsSettingsOpen(true)}>
+              <Settings className="w-4 h-4 mr-2" /> Settings
+            </Button>
+            <Button size="sm" className="bg-gradient-primary shadow-manufacturing" onClick={() => setIsProductionOpen(true)}>
+              <Factory className="w-4 h-4 mr-2" /> New Production
+            </Button>
+          </div>
+        )}
       </div>
 
       {isLoading || !data ? (

@@ -13,6 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { Users, Plus, Search, Trash2, UserCheck, UserX, IndianRupee, Package, Scissors, Wallet, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SareeSubmission { id: string; date: string; quantity: number; note?: string; }
 interface Advance { id: string; date: string; amount: number; note?: string; }
@@ -34,6 +35,7 @@ interface Worker {
 const Workers = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { canWrite } = useAuth();
 
   const { data: workers = [], isLoading } = useQuery<Worker[]>({
     queryKey: ["workers"],
@@ -181,12 +183,14 @@ const Workers = () => {
           <h1 className="text-3xl font-bold text-foreground">Workers Management</h1>
           <p className="text-muted-foreground mt-1">Track saree submissions, warp progress, wages and advances</p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-primary shadow-manufacturing">
-              <Plus className="w-4 h-4 mr-2" /> Add Worker
-            </Button>
-          </DialogTrigger>
+        <Dialog open={canWrite && isAddDialogOpen} onOpenChange={(open) => canWrite && setIsAddDialogOpen(open)}>
+          {canWrite && (
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-primary shadow-manufacturing">
+                <Plus className="w-4 h-4 mr-2" /> Add Worker
+              </Button>
+            </DialogTrigger>
+          )}
           <DialogContent className="sm:max-w-[480px]">
             <DialogHeader><DialogTitle>Add New Worker</DialogTitle></DialogHeader>
             <div className="grid gap-4 py-4">
@@ -313,11 +317,19 @@ const Workers = () => {
                     <Progress value={t.warpProgress} className="h-2" />
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <Button size="sm" onClick={() => setSubmitFor(w)}><Plus className="w-4 h-4 mr-1" /> Submit Sarees</Button>
-                    <Button size="sm" variant="outline" onClick={() => setAdvanceFor(w)}><Wallet className="w-4 h-4 mr-1" /> Record Advance</Button>
+                    {canWrite && (
+                      <>
+                        <Button size="sm" onClick={() => setSubmitFor(w)}><Plus className="w-4 h-4 mr-1" /> Submit Sarees</Button>
+                        <Button size="sm" variant="outline" onClick={() => setAdvanceFor(w)}><Wallet className="w-4 h-4 mr-1" /> Record Advance</Button>
+                      </>
+                    )}
                     <Button size="sm" variant="outline" onClick={() => setLedgerFor(w)}><BookOpen className="w-4 h-4 mr-1" /> View Ledger</Button>
-                    <Button size="sm" variant="outline" onClick={() => cutWarpMutation.mutate(w.id)}><Scissors className="w-4 h-4 mr-1" /> Cut Warp</Button>
-                    <Button size="sm" variant="outline" onClick={() => deleteMutation.mutate(w.id)} className="text-destructive hover:text-destructive ml-auto"><Trash2 className="w-4 h-4" /></Button>
+                    {canWrite && (
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => cutWarpMutation.mutate(w.id)}><Scissors className="w-4 h-4 mr-1" /> Cut Warp</Button>
+                        <Button size="sm" variant="outline" onClick={() => deleteMutation.mutate(w.id)} className="text-destructive hover:text-destructive ml-auto"><Trash2 className="w-4 h-4" /></Button>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>

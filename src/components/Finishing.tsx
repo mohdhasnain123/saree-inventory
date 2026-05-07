@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Scissors, IndianRupee, Save, Plus, CheckCircle2, Trash2, Calendar, User, Droplets } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface FinishingCosts {
   cuttingCost: number;
@@ -36,6 +37,7 @@ interface FinishingJob {
 const Finishing = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { canWrite } = useAuth();
 
   const { data: costsData } = useQuery<FinishingCosts>({
     queryKey: ["finishing", "costs"],
@@ -185,16 +187,18 @@ const Finishing = () => {
                   <p className="text-sm text-muted-foreground">Total Payable</p>
                   <p className="font-bold text-success">₹{total.toLocaleString()}</p>
                 </div>
-                <div className="flex gap-2 pt-2">
-                  {job.status === "in-progress" && (
-                    <Button size="sm" className="flex-1" onClick={() => returnJobMutation.mutate(job.id)}>
-                      <CheckCircle2 className="w-4 h-4 mr-1" /> Mark Returned
+                {canWrite && (
+                  <div className="flex gap-2 pt-2">
+                    {job.status === "in-progress" && (
+                      <Button size="sm" className="flex-1" onClick={() => returnJobMutation.mutate(job.id)}>
+                        <CheckCircle2 className="w-4 h-4 mr-1" /> Mark Returned
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" onClick={() => deleteJobMutation.mutate(job.id)}>
+                      <Trash2 className="w-4 h-4" />
                     </Button>
-                  )}
-                  <Button size="sm" variant="outline" onClick={() => deleteJobMutation.mutate(job.id)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           );
@@ -258,46 +262,52 @@ const Finishing = () => {
         </TabsList>
 
         <TabsContent value="cutting" className="space-y-4">
-          <div className="flex justify-end">
-            <Button onClick={() => openDialog("cutting")} className="bg-gradient-primary shadow-manufacturing">
-              <Plus className="w-4 h-4 mr-2" /> Send for Cutting
-            </Button>
-          </div>
+          {canWrite && (
+            <div className="flex justify-end">
+              <Button onClick={() => openDialog("cutting")} className="bg-gradient-primary shadow-manufacturing">
+                <Plus className="w-4 h-4 mr-2" /> Send for Cutting
+              </Button>
+            </div>
+          )}
           {renderJobs("cutting")}
         </TabsContent>
 
         <TabsContent value="waxing" className="space-y-4">
-          <div className="flex justify-end">
-            <Button onClick={() => openDialog("waxing")} className="bg-gradient-primary shadow-manufacturing">
-              <Plus className="w-4 h-4 mr-2" /> Send for Waxing/Rolling
-            </Button>
-          </div>
+          {canWrite && (
+            <div className="flex justify-end">
+              <Button onClick={() => openDialog("waxing")} className="bg-gradient-primary shadow-manufacturing">
+                <Plus className="w-4 h-4 mr-2" /> Send for Waxing/Rolling
+              </Button>
+            </div>
+          )}
           {renderJobs("waxing")}
         </TabsContent>
       </Tabs>
 
-      <Card className="bg-gradient-card shadow-card border-0">
-        <CardHeader><CardTitle>Configure Default Finishing Costs</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="cutting">Cutting Cost per Saree (₹)</Label>
-              <Input id="cutting" type="number" value={costs.cuttingCost} onChange={(e) => setCosts({ ...costs, cuttingCost: parseFloat(e.target.value) || 0 })} placeholder="0" />
+      {canWrite && (
+        <Card className="bg-gradient-card shadow-card border-0">
+          <CardHeader><CardTitle>Configure Default Finishing Costs</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="cutting">Cutting Cost per Saree (₹)</Label>
+                <Input id="cutting" type="number" value={costs.cuttingCost} onChange={(e) => setCosts({ ...costs, cuttingCost: parseFloat(e.target.value) || 0 })} placeholder="0" />
+              </div>
+              <div>
+                <Label htmlFor="waxing">Waxing / Rolling Cost per Saree (₹)</Label>
+                <Input id="waxing" type="number" value={costs.waxingCost} onChange={(e) => setCosts({ ...costs, waxingCost: parseFloat(e.target.value) || 0 })} placeholder="0" />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="waxing">Waxing / Rolling Cost per Saree (₹)</Label>
-              <Input id="waxing" type="number" value={costs.waxingCost} onChange={(e) => setCosts({ ...costs, waxingCost: parseFloat(e.target.value) || 0 })} placeholder="0" />
+            <Button onClick={() => saveCostsMutation.mutate(costs)} className="bg-gradient-primary shadow-manufacturing">
+              <Save className="w-4 h-4 mr-2" />
+              Save Finishing Costs
+            </Button>
+            <div className="text-sm text-muted-foreground bg-muted/40 p-3 rounded-md">
+              These default costs are auto-added to the <span className="font-medium text-foreground">Cost Price</span> of new sarees added in the Sarees tab.
             </div>
-          </div>
-          <Button onClick={() => saveCostsMutation.mutate(costs)} className="bg-gradient-primary shadow-manufacturing">
-            <Save className="w-4 h-4 mr-2" />
-            Save Finishing Costs
-          </Button>
-          <div className="text-sm text-muted-foreground bg-muted/40 p-3 rounded-md">
-            These default costs are auto-added to the <span className="font-medium text-foreground">Cost Price</span> of new sarees added in the Sarees tab.
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       <Dialog open={dialogType !== null} onOpenChange={(o) => !o && setDialogType(null)}>
         <DialogContent className="max-w-md">

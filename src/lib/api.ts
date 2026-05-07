@@ -1,14 +1,54 @@
 const BASE_URL =
   (import.meta.env?.VITE_API_URL as string | undefined) || "/api";
 
+const TOKEN_KEY = "sf_auth_token";
+
+export const authStorage = {
+  getToken(): string | null {
+    try {
+      return localStorage.getItem(TOKEN_KEY);
+    } catch {
+      return null;
+    }
+  },
+  setToken(token: string) {
+    try {
+      localStorage.setItem(TOKEN_KEY, token);
+    } catch {
+      /* ignore */
+    }
+  },
+  clear() {
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+    } catch {
+      /* ignore */
+    }
+  },
+};
+
+let onUnauthorized: (() => void) | null = null;
+export const setUnauthorizedHandler = (cb: (() => void) | null) => {
+  onUnauthorized = cb;
+};
+
 async function request<T = unknown>(
   path: string,
   init: RequestInit = {}
 ): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json", ...(init.headers || {}) },
-    ...init,
-  });
+  const token = authStorage.getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...((init.headers as Record<string, string>) || {}),
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
+
+  if (res.status === 401) {
+    authStorage.clear();
+    if (onUnauthorized) onUnauthorized();
+  }
   if (!res.ok) {
     let msg = `HTTP ${res.status}`;
     try {
