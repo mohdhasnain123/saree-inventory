@@ -203,22 +203,22 @@ const Reports = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Reports & Analytics</h1>
-          <p className="text-muted-foreground mt-1">Comprehensive business insights and performance metrics</p>
+    <div className="space-y-6 min-w-0">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 pl-12 lg:pl-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground break-words">Reports & Analytics</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">Comprehensive business insights and performance metrics</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2 sm:gap-3">
           <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-            <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="monthly">Monthly</SelectItem>
               <SelectItem value="quarterly">Quarterly</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={() => exportReport("pdf")}><Download className="w-4 h-4 mr-2" />Export PDF</Button>
-          <Button variant="outline" onClick={() => exportReport("csv")}><Download className="w-4 h-4 mr-2" />Export CSV</Button>
+          <Button variant="outline" size="sm" onClick={() => exportReport("pdf")}><Download className="w-4 h-4 mr-2" />Export PDF</Button>
+          <Button variant="outline" size="sm" onClick={() => exportReport("csv")}><Download className="w-4 h-4 mr-2" />Export CSV</Button>
         </div>
       </div>
 
