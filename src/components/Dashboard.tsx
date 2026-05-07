@@ -69,19 +69,19 @@ const Dashboard = () => {
     : [];
 
   return (
-    <div className="min-h-screen bg-gradient-background p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Saree Manufacturing Dashboard</h1>
-          <p className="text-muted-foreground mt-1">
+    <div className="min-h-screen bg-gradient-background p-4 sm:p-6 space-y-6 min-w-0">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 pl-12 lg:pl-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground break-words">Saree Manufacturing Dashboard</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             Monitor your production, inventory, and sales performance
           </p>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" className="shadow-card" onClick={() => setIsSettingsOpen(true)}>
+        <div className="flex flex-wrap gap-2 sm:gap-3">
+          <Button variant="outline" size="sm" className="shadow-card" onClick={() => setIsSettingsOpen(true)}>
             <Settings className="w-4 h-4 mr-2" /> Settings
           </Button>
-          <Button className="bg-gradient-primary shadow-manufacturing" onClick={() => setIsProductionOpen(true)}>
+          <Button size="sm" className="bg-gradient-primary shadow-manufacturing" onClick={() => setIsProductionOpen(true)}>
             <Factory className="w-4 h-4 mr-2" /> New Production
           </Button>
         </div>
