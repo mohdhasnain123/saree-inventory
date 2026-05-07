@@ -13,8 +13,18 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSettings } from "@/contexts/SettingsContext";
 
-const numberToWordsIndian = (num: number): string => {
+const CURRENCY_WORDS: Record<string, { major: string; minor: string }> = {
+  INR: { major: "Indian Rupees", minor: "Paise" },
+  USD: { major: "US Dollars", minor: "Cents" },
+  EUR: { major: "Euros", minor: "Cents" },
+  GBP: { major: "Pounds", minor: "Pence" },
+  AED: { major: "UAE Dirhams", minor: "Fils" },
+  SGD: { major: "Singapore Dollars", minor: "Cents" },
+};
+
+const numberToWordsIndian = (num: number, currency: string = "INR"): string => {
   const a = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
     "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
   const b = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
@@ -37,10 +47,11 @@ const numberToWordsIndian = (num: number): string => {
     if (hundred) str += inWords(hundred);
     return str.trim();
   };
+  const words = CURRENCY_WORDS[currency.toUpperCase()] || CURRENCY_WORDS.INR;
   const rupees = Math.floor(num);
   const paise = Math.round((num - rupees) * 100);
-  let result = "Indian Rupees " + convert(rupees);
-  if (paise > 0) result += " and " + convert(paise) + " Paise";
+  let result = `${words.major} ` + convert(rupees);
+  if (paise > 0) result += ` and ` + convert(paise) + ` ${words.minor}`;
   return result + " Only";
 };
 
@@ -53,7 +64,7 @@ const formatINDate = (iso: string): string => {
 
 const formatINR = (n: number): string => n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const COMPANY = {
+const COMPANY_DEFAULTS = {
   name: "SAREE MANUFACTURING CO.",
   addr1: "SHOP 12, TEXTILE MARKET",
   addr2: "RING ROAD, SURAT",
@@ -74,7 +85,13 @@ const COMPANY = {
   jurisdiction: "SURAT",
 };
 
-const generateTaxInvoice = (sale: Sale, copyType: string) => {
+const generateTaxInvoice = (
+  sale: Sale,
+  copyType: string,
+  companyOverride?: Partial<typeof COMPANY_DEFAULTS>,
+  currency: string = "INR"
+) => {
+  const COMPANY = { ...COMPANY_DEFAULTS, ...(companyOverride || {}) };
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -256,7 +273,7 @@ const generateTaxInvoice = (sale: Sale, copyType: string) => {
   doc.text("Amount Chargeable (in words)", mL + 2, y + 4);
   doc.text("E. & O.E", pageW - mR - 2, y + 4, { align: "right" });
   doc.setFont("helvetica", "bold");
-  doc.text(numberToWordsIndian(grandTotal), mL + 2, y + 8);
+  doc.text(numberToWordsIndian(grandTotal, currency), mL + 2, y + 8);
   y += 10;
 
   autoTable(doc, {
@@ -306,7 +323,7 @@ const generateTaxInvoice = (sale: Sale, copyType: string) => {
   doc.setFont("helvetica", "normal");
   doc.text("Tax Amount (in words) :", mL + 2, y + 4);
   doc.setFont("helvetica", "bold");
-  doc.text(numberToWordsIndian(cgst + sgst), mL + 40, y + 4);
+  doc.text(numberToWordsIndian(cgst + sgst, currency), mL + 40, y + 4);
   y += 8;
 
   doc.rect(mL, y, innerW, 6);
@@ -381,6 +398,7 @@ const Sales = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { canWrite } = useAuth();
+  const { settings, formatMoney, notifyEnabled } = useSettings();
 
   const { data: sales = [], isLoading } = useQuery<Sale[]>({
     queryKey: ["sales"],
@@ -391,7 +409,9 @@ const Sales = () => {
     mutationFn: (body: Partial<Sale>) => api.post<Sale>("/sales", body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales"] });
-      toast({ title: "Sale Recorded", description: "New sale has been added." });
+      if (notifyEnabled("newOrders")) {
+        toast({ title: "Sale Recorded", description: "New sale has been added." });
+      }
     },
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
@@ -511,7 +531,15 @@ const Sales = () => {
   const handleDelete = (id: string) => deleteMutation.mutate(id);
 
   const handleDownloadBill = (sale: Sale) => {
-    generateTaxInvoice(sale, "ORIGINAL FOR RECIPIENT");
+    const override: Partial<typeof COMPANY_DEFAULTS> = {
+      name: settings.companyName?.toUpperCase() || COMPANY_DEFAULTS.name,
+      addr1: settings.companyAddress || COMPANY_DEFAULTS.addr1,
+      addr2: "",
+      addr3: "",
+      mob: settings.contactPhone || COMPANY_DEFAULTS.mob,
+      email: settings.contactEmail || COMPANY_DEFAULTS.email,
+    };
+    generateTaxInvoice(sale, "ORIGINAL FOR RECIPIENT", override, settings.currency);
     toast({ title: "Bill Downloaded", description: `Invoice for ${sale.customerName} has been generated.` });
   };
 

@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Factory, Shirt, Users, Settings, Package, Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
+import { useSettings } from "@/contexts/SettingsContext";
 
 interface NewProductionDialogProps {
   open: boolean;
@@ -25,6 +26,7 @@ interface MaterialLite { id: string; name: string; unit: string; }
 const NewProductionDialog = ({ open, onOpenChange }: NewProductionDialogProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { notifyEnabled } = useSettings();
 
   const { data: workers = [] } = useQuery<WorkerLite[]>({
     queryKey: ["workers"],
@@ -48,7 +50,9 @@ const NewProductionDialog = ({ open, onOpenChange }: NewProductionDialogProps) =
     mutationFn: (body: Record<string, unknown>) => api.post("/productions", body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["productions"] });
-      toast({ title: "Production Order Created", description: "Production order saved successfully." });
+      if (notifyEnabled("production")) {
+        toast({ title: "Production Order Created", description: "Production order saved successfully." });
+      }
       reset();
       onOpenChange(false);
     },

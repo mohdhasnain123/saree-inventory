@@ -15,6 +15,8 @@ export interface AuthUser {
   name?: string;
   role: "admin" | "manager" | "staff";
   status: "active" | "inactive";
+  passwordChangedAt?: string;
+  lastLoginAt?: string;
 }
 
 interface LoginResponse {
@@ -31,6 +33,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   canWrite: boolean;
+  isAdmin: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -102,6 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isAuthenticated: !!user,
       isLoading,
       canWrite: !!user && WRITE_ROLES.includes(user.role),
+      isAdmin: !!user && user.role === "admin",
       login,
       logout,
     }),

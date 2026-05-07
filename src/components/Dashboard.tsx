@@ -29,6 +29,8 @@ import SettingsDialog from "./SettingsDialog";
 import NewProductionDialog from "./NewProductionDialog";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSettings } from "@/contexts/SettingsContext";
+import { AlertTriangle } from "lucide-react";
 
 interface DashboardData {
   stats: {
@@ -50,15 +52,39 @@ interface DashboardData {
   }[];
 }
 
+interface MaterialLite { id: string; name: string; status: string; }
+interface SareeLite { id: string; design: string; status: string; }
+
 const Dashboard = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProductionOpen, setIsProductionOpen] = useState(false);
-  const { canWrite } = useAuth();
+  const { canWrite, isAdmin } = useAuth();
+  const { formatMoney, notifyEnabled } = useSettings();
 
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ["dashboard"],
     queryFn: () => api.get<DashboardData>("/dashboard"),
   });
+
+  const { data: materialsLite = [] } = useQuery<MaterialLite[]>({
+    queryKey: ["materials"],
+    queryFn: () => api.get<MaterialLite[]>("/materials"),
+    enabled: notifyEnabled("lowStock"),
+  });
+  const { data: sareesLite = [] } = useQuery<SareeLite[]>({
+    queryKey: ["sarees"],
+    queryFn: () => api.get<SareeLite[]>("/sarees"),
+    enabled: notifyEnabled("lowStock"),
+  });
+
+  const lowStockMaterials = materialsLite.filter(
+    (m) => m.status === "low-stock" || m.status === "out-of-stock"
+  );
+  const lowStockSarees = sareesLite.filter(
+    (s) => s.status === "low-stock" || s.status === "out-of-stock"
+  );
+  const showLowStockBanner =
+    notifyEnabled("lowStock") && (lowStockMaterials.length > 0 || lowStockSarees.length > 0);
 
   const stats = data
     ? [
@@ -66,7 +92,7 @@ const Dashboard = () => {
         { title: "Yarn Length (Warp + Weft)", value: data.stats.totalYarnMeters.toLocaleString(), unit: "meters", icon: Package, trend: "", trending: "up" },
         { title: "Sarees in Stock", value: String(data.stats.totalSareesInStock), unit: "pieces", icon: Shirt, trend: "", trending: "up" },
         { title: "Active Workers", value: String(data.stats.activeWorkers), unit: "people", icon: Users, trend: "", trending: "up" },
-        { title: "Monthly Revenue", value: `₹${data.stats.monthlyRevenue.toLocaleString()}`, unit: "", icon: IndianRupee, trend: "", trending: "up" },
+        { title: "Monthly Revenue", value: formatMoney(data.stats.monthlyRevenue), unit: "", icon: IndianRupee, trend: "", trending: "up" },
       ]
     : [];
 
@@ -81,15 +107,32 @@ const Dashboard = () => {
         </div>
         {canWrite && (
           <div className="flex flex-wrap gap-2 sm:gap-3">
-            <Button variant="outline" size="sm" className="shadow-card" onClick={() => setIsSettingsOpen(true)}>
-              <Settings className="w-4 h-4 mr-2" /> Settings
-            </Button>
+            {isAdmin && (
+              <Button variant="outline" size="sm" className="shadow-card" onClick={() => setIsSettingsOpen(true)}>
+                <Settings className="w-4 h-4 mr-2" /> Settings
+              </Button>
+            )}
             <Button size="sm" className="bg-gradient-primary shadow-manufacturing" onClick={() => setIsProductionOpen(true)}>
               <Factory className="w-4 h-4 mr-2" /> New Production
             </Button>
           </div>
         )}
       </div>
+
+      {showLowStockBanner && (
+        <Card className="border-warning/40 bg-warning/10">
+          <CardContent className="p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-warning mt-0.5 flex-shrink-0" />
+            <div className="text-sm">
+              <p className="font-medium text-foreground">Low stock alert</p>
+              <p className="text-muted-foreground mt-1">
+                {lowStockMaterials.length} raw material{lowStockMaterials.length === 1 ? "" : "s"} and{" "}
+                {lowStockSarees.length} saree design{lowStockSarees.length === 1 ? "" : "s"} are at or below threshold.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {isLoading || !data ? (
         <Card className="bg-gradient-card shadow-card border-0">
@@ -199,7 +242,7 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-foreground">₹{sale.amount.toLocaleString()}</p>
+                      <p className="font-medium text-foreground">{formatMoney(sale.amount)}</p>
                       <p className="text-sm text-muted-foreground">{sale.quantity} pieces</p>
                     </div>
                   </div>

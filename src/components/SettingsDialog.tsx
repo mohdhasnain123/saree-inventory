@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,47 +8,51 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Building, Bell, Shield, Database, Palette, Save } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Building, Bell, Shield, Database, Palette, Save, Upload, Download, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { api } from "@/lib/api";
+import { api, authStorage } from "@/lib/api";
+import { AppSettings, defaultSettings } from "@/contexts/SettingsContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-interface Settings {
-  companyName: string;
-  companyAddress: string;
-  contactEmail: string;
-  contactPhone: string;
-  currency: string;
-  timezone: string;
-  notifications: { lowStock: boolean; newOrders: boolean; production: boolean; reports: boolean };
-  security: { twoFactor: boolean; sessionTimeout: number; passwordExpiry: number };
-  appearance: { darkMode: boolean; compactMode: boolean; animations: boolean };
-}
+const API_BASE_URL =
+  (import.meta.env?.VITE_API_URL as string | undefined) || "/api";
 
-const defaultSettings: Settings = {
-  companyName: "SareeFlow Manufacturing",
-  companyAddress: "123 Textile Street, Mumbai, Maharashtra",
-  contactEmail: "admin@sareeflow.com",
-  contactPhone: "+91 98765 43210",
-  currency: "INR",
-  timezone: "Asia/Kolkata",
-  notifications: { lowStock: true, newOrders: true, production: false, reports: true },
-  security: { twoFactor: false, sessionTimeout: 30, passwordExpiry: 90 },
-  appearance: { darkMode: false, compactMode: false, animations: true },
-};
+const CURRENCY_CHOICES = [
+  { value: "INR", label: "INR — Indian Rupee (₹)" },
+  { value: "USD", label: "USD — US Dollar ($)" },
+  { value: "EUR", label: "EUR — Euro (€)" },
+  { value: "GBP", label: "GBP — Pound (£)" },
+  { value: "AED", label: "AED — UAE Dirham" },
+  { value: "SGD", label: "SGD — Singapore Dollar" },
+];
+
+const TIMEZONE_CHOICES = [
+  "Asia/Kolkata",
+  "Asia/Dubai",
+  "Asia/Singapore",
+  "Europe/London",
+  "America/New_York",
+  "UTC",
+];
 
 const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const { user, isAdmin } = useAuth();
+  const [settings, setSettings] = useState<AppSettings>(defaultSettings);
+  const [restoring, setRestoring] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data } = useQuery<Settings>({
+  const { data } = useQuery<AppSettings>({
     queryKey: ["settings"],
-    queryFn: () => api.get<Settings>("/settings"),
+    queryFn: () => api.get<AppSettings>("/settings"),
     enabled: open,
   });
 
@@ -57,10 +61,10 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
   }, [data]);
 
   const saveMutation = useMutation({
-    mutationFn: (body: Settings) => api.put<Settings>("/settings", body),
+    mutationFn: (body: AppSettings) => api.put<AppSettings>("/settings", body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
-      toast({ title: "Settings Saved", description: "Your settings have been updated successfully." });
+      toast({ title: "Settings Saved", description: "Your settings have been updated." });
       onOpenChange(false);
     },
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
@@ -76,8 +80,98 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
         cur = cur[keys[i]] as Record<string, unknown>;
       }
       cur[keys[keys.length - 1]] = value;
-      return next as unknown as Settings;
+      return next as unknown as AppSettings;
     });
+  };
+
+  const handleBackup = async () => {
+    try {
+      setDownloading(true);
+      const token = authStorage.getToken();
+      const res = await fetch(`${API_BASE_URL}/backup`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error(`Backup failed (${res.status})`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `saree-inventory-backup-${new Date()
+        .toISOString()
+        .replace(/[:.]/g, "-")}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast({ title: "Backup downloaded", description: "All collections exported as JSON." });
+    } catch (err) {
+      toast({
+        title: "Backup failed",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleImportClick = () => {
+    if (user?.role !== "admin") {
+      toast({
+        title: "Permission denied",
+        description: "Only admin users can import data.",
+        variant: "destructive",
+      });
+      return;
+    }
+    fileInputRef.current?.click();
+  };
+
+  const handleImportFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (
+      !window.confirm(
+        "Restoring will REPLACE all existing data with the contents of this backup file. Continue?"
+      )
+    )
+      return;
+    try {
+      setRestoring(true);
+      const text = await file.text();
+      const dump = JSON.parse(text);
+      const result = await api.post<{ ok: boolean; restored: Record<string, number> }>(
+        "/backup/restore",
+        dump
+      );
+      const summary = Object.entries(result.restored || {})
+        .map(([k, n]) => `${k}: ${n}`)
+        .join(", ");
+      toast({ title: "Restore complete", description: summary || "Data restored." });
+      queryClient.invalidateQueries();
+    } catch (err) {
+      toast({
+        title: "Restore failed",
+        description: err instanceof Error ? err.message : "Invalid file",
+        variant: "destructive",
+      });
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  const notificationLabels: Record<keyof AppSettings["notifications"], { label: string; desc: string }> = {
+    lowStock: { label: "Low Stock Alerts", desc: "Show a banner when materials/sarees fall below threshold." },
+    newOrders: { label: "New Sales", desc: "Toast notification when a new sale is recorded." },
+    production: { label: "Production Updates", desc: "Toast when a new production batch is created." },
+    reports: { label: "Report Notifications", desc: "Notify on report generation events." },
+  };
+
+  const appearanceLabels: Record<keyof AppSettings["appearance"], { label: string; desc: string }> = {
+    darkMode: { label: "Dark Mode", desc: "Use dark color scheme across the app." },
+    compactMode: { label: "Compact Mode", desc: "Reduce padding/spacing to fit more on screen." },
+    animations: { label: "Animations", desc: "Enable transitions and animation effects." },
   };
 
   return (
@@ -104,14 +198,50 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
                 <CardHeader><CardTitle>Company Information</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2"><Label>Company Name</Label><Input value={settings.companyName} onChange={(e) => updateSetting("companyName", e.target.value)} /></div>
-                    <div className="space-y-2"><Label>Currency</Label><Input value={settings.currency} onChange={(e) => updateSetting("currency", e.target.value)} /></div>
+                    <div className="space-y-2">
+                      <Label>Company Name</Label>
+                      <Input value={settings.companyName} onChange={(e) => updateSetting("companyName", e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Currency</Label>
+                      <Select value={settings.currency} onValueChange={(v) => updateSetting("currency", v)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {CURRENCY_CHOICES.map((c) => (
+                            <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="space-y-2"><Label>Address</Label><Input value={settings.companyAddress} onChange={(e) => updateSetting("companyAddress", e.target.value)} /></div>
+                  <div className="space-y-2">
+                    <Label>Address</Label>
+                    <Input value={settings.companyAddress} onChange={(e) => updateSetting("companyAddress", e.target.value)} />
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2"><Label>Contact Email</Label><Input type="email" value={settings.contactEmail} onChange={(e) => updateSetting("contactEmail", e.target.value)} /></div>
-                    <div className="space-y-2"><Label>Contact Phone</Label><Input value={settings.contactPhone} onChange={(e) => updateSetting("contactPhone", e.target.value)} /></div>
+                    <div className="space-y-2">
+                      <Label>Contact Email</Label>
+                      <Input type="email" value={settings.contactEmail} onChange={(e) => updateSetting("contactEmail", e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Contact Phone</Label>
+                      <Input value={settings.contactPhone} onChange={(e) => updateSetting("contactPhone", e.target.value)} />
+                    </div>
                   </div>
+                  <div className="space-y-2">
+                    <Label>Timezone</Label>
+                    <Select value={settings.timezone} onValueChange={(v) => updateSetting("timezone", v)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {TIMEZONE_CHOICES.map((tz) => (
+                          <SelectItem key={tz} value={tz}>{tz}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Company info appears on tax invoices. Currency symbol is used throughout the app.
+                  </p>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -120,13 +250,16 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
               <Card>
                 <CardHeader><CardTitle>Notification Preferences</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  {Object.entries(settings.notifications).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between">
+                  {(Object.keys(settings.notifications) as Array<keyof AppSettings["notifications"]>).map((key) => (
+                    <div key={key} className="flex items-center justify-between gap-4">
                       <div className="space-y-0.5">
-                        <div className="text-sm font-medium">{key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())}</div>
-                        <div className="text-xs text-muted-foreground">Receive notifications for {key.toLowerCase()} events</div>
+                        <div className="text-sm font-medium">{notificationLabels[key].label}</div>
+                        <div className="text-xs text-muted-foreground">{notificationLabels[key].desc}</div>
                       </div>
-                      <Switch checked={value} onCheckedChange={(c) => updateSetting(`notifications.${key}`, c)} />
+                      <Switch
+                        checked={settings.notifications[key]}
+                        onCheckedChange={(c) => updateSetting(`notifications.${key}`, c)}
+                      />
                     </div>
                   ))}
                 </CardContent>
@@ -137,17 +270,39 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
               <Card>
                 <CardHeader><CardTitle>Security Settings</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-4 opacity-60">
                     <div className="space-y-0.5">
-                      <div className="text-sm font-medium">Two-Factor Authentication</div>
-                      <div className="text-xs text-muted-foreground">Add an extra layer of security to your account</div>
+                      <div className="text-sm font-medium">Two-Factor Authentication
+                        <span className="ml-2 text-[10px] uppercase tracking-wide bg-muted px-1.5 py-0.5 rounded">Coming soon</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">Add an extra layer of security to your account.</div>
                     </div>
-                    <Switch checked={settings.security.twoFactor} onCheckedChange={(c) => updateSetting("security.twoFactor", c)} />
+                    <Switch checked={false} disabled />
                   </div>
                   <Separator />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2"><Label>Session Timeout (minutes)</Label><Input type="number" value={settings.security.sessionTimeout} onChange={(e) => updateSetting("security.sessionTimeout", parseInt(e.target.value))} /></div>
-                    <div className="space-y-2"><Label>Password Expiry (days)</Label><Input type="number" value={settings.security.passwordExpiry} onChange={(e) => updateSetting("security.passwordExpiry", parseInt(e.target.value))} /></div>
+                    <div className="space-y-2">
+                      <Label>Session Timeout (minutes)</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={1440}
+                        value={settings.security.sessionTimeout}
+                        onChange={(e) => updateSetting("security.sessionTimeout", Math.max(1, parseInt(e.target.value) || 1))}
+                      />
+                      <p className="text-xs text-muted-foreground">Auto-logout after this many minutes of inactivity.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Password Expiry (days)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={3650}
+                        value={settings.security.passwordExpiry}
+                        onChange={(e) => updateSetting("security.passwordExpiry", Math.max(0, parseInt(e.target.value) || 0))}
+                      />
+                      <p className="text-xs text-muted-foreground">Users see a warning after their password is older than this. Set 0 to disable.</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -158,11 +313,42 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
                 <CardHeader><CardTitle>Data Management</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Button variant="outline" className="h-20 flex flex-col items-center gap-2"><Database className="w-6 h-6" /><div className="text-center"><div className="font-medium">Backup Data</div><div className="text-xs text-muted-foreground">Export all data</div></div></Button>
-                    <Button variant="outline" className="h-20 flex flex-col items-center gap-2"><Database className="w-6 h-6" /><div className="text-center"><div className="font-medium">Import Data</div><div className="text-xs text-muted-foreground">Import from file</div></div></Button>
+                    <Button
+                      variant="outline"
+                      className="h-20 flex flex-col items-center gap-2"
+                      onClick={handleBackup}
+                      disabled={downloading}
+                    >
+                      {downloading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Download className="w-6 h-6" />}
+                      <div className="text-center">
+                        <div className="font-medium">Backup Data</div>
+                        <div className="text-xs text-muted-foreground">Export all collections as JSON</div>
+                      </div>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-20 flex flex-col items-center gap-2"
+                      onClick={handleImportClick}
+                      disabled={restoring}
+                    >
+                      {restoring ? <Loader2 className="w-6 h-6 animate-spin" /> : <Upload className="w-6 h-6" />}
+                      <div className="text-center">
+                        <div className="font-medium">Import Data</div>
+                        <div className="text-xs text-muted-foreground">Restore from backup file</div>
+                      </div>
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="application/json,.json"
+                      className="hidden"
+                      onChange={handleImportFile}
+                    />
                   </div>
                   <Separator />
-                  <div className="text-sm text-muted-foreground"><strong>Note:</strong> Data operations may take some time to complete. Make sure to backup your data regularly.</div>
+                  <div className="text-sm text-muted-foreground">
+                    <strong>Note:</strong> Restoring REPLACES all existing data. Take a backup first. Import is restricted to admin users.
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -171,28 +357,44 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
               <Card>
                 <CardHeader><CardTitle>Appearance Settings</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  {Object.entries(settings.appearance).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between">
+                  {(Object.keys(settings.appearance) as Array<keyof AppSettings["appearance"]>).map((key) => (
+                    <div key={key} className="flex items-center justify-between gap-4">
                       <div className="space-y-0.5">
-                        <div className="text-sm font-medium">{key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {key === "darkMode" && "Switch between light and dark theme"}
-                          {key === "compactMode" && "Use a more compact interface layout"}
-                          {key === "animations" && "Enable interface animations and transitions"}
-                        </div>
+                        <div className="text-sm font-medium">{appearanceLabels[key].label}</div>
+                        <div className="text-xs text-muted-foreground">{appearanceLabels[key].desc}</div>
                       </div>
-                      <Switch checked={value} onCheckedChange={(c) => updateSetting(`appearance.${key}`, c)} />
+                      <Switch
+                        checked={settings.appearance[key]}
+                        onCheckedChange={(c) => updateSetting(`appearance.${key}`, c)}
+                      />
                     </div>
                   ))}
+                  <p className="text-xs text-muted-foreground">
+                    Appearance changes apply immediately when you save.
+                  </p>
                 </CardContent>
               </Card>
             </TabsContent>
           </div>
         </Tabs>
 
+        {!isAdmin && (
+          <div className="text-xs text-muted-foreground bg-muted/40 border rounded-md p-3 mt-2">
+            Settings can only be modified by an <strong>admin</strong> user. You are viewing them in read-only mode.
+          </div>
+        )}
         <div className="flex justify-end gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => saveMutation.mutate(settings)} className="bg-gradient-primary"><Save className="w-4 h-4 mr-2" />Save Settings</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+          {isAdmin && (
+            <Button
+              onClick={() => saveMutation.mutate(settings)}
+              className="bg-gradient-primary"
+              disabled={saveMutation.isPending}
+            >
+              {saveMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              Save Settings
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

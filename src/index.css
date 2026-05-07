@@ -73,41 +73,59 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 222 30% 8%;
+    --foreground: 210 25% 92%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 222 28% 12%;
+    --card-foreground: 210 25% 92%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 222 28% 12%;
+    --popover-foreground: 210 25% 92%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 210 90% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 222 20% 18%;
+    --secondary-foreground: 210 25% 92%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 222 20% 18%;
+    --muted-foreground: 215 15% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 35 85% 60%;
+    --accent-foreground: 0 0% 10%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --success: 142 60% 45%;
+    --success-foreground: 0 0% 98%;
+
+    --warning: 45 85% 55%;
+    --warning-foreground: 0 0% 10%;
+
+    --border: 222 20% 22%;
+    --input: 222 20% 22%;
+    --ring: 210 90% 60%;
+
+    /* Manufacturing theme gradients (dark) */
+    --gradient-primary: linear-gradient(135deg, hsl(210 90% 50%), hsl(210 80% 60%));
+    --gradient-accent: linear-gradient(135deg, hsl(35 85% 55%), hsl(35 80% 65%));
+    --gradient-background: linear-gradient(180deg, hsl(222 30% 8%), hsl(222 28% 10%));
+    --gradient-card: linear-gradient(145deg, hsl(222 28% 13%), hsl(222 25% 15%));
+
+    /* Manufacturing shadows (dark) */
+    --shadow-manufacturing: 0 4px 20px -4px hsl(210 100% 50% / 0.35);
+    --shadow-card: 0 2px 10px -2px hsl(0 0% 0% / 0.5);
+    --shadow-elevated: 0 8px 30px -4px hsl(0 0% 0% / 0.6);
+
+    --sidebar-background: 222 30% 10%;
+    --sidebar-foreground: 210 25% 90%;
+    --sidebar-primary: 210 90% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 222 20% 18%;
+    --sidebar-accent-foreground: 210 25% 92%;
+    --sidebar-border: 222 20% 22%;
+    --sidebar-ring: 210 90% 60%;
   }
 }
 
@@ -119,4 +137,23 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+}
+
+body.compact-mode {
+  font-size: 0.92rem;
+}
+body.compact-mode .p-6 { padding: 0.75rem !important; }
+body.compact-mode .p-4 { padding: 0.5rem !important; }
+body.compact-mode .gap-6 { gap: 0.75rem !important; }
+body.compact-mode .gap-4 { gap: 0.5rem !important; }
+body.compact-mode .space-y-6 > * + * { margin-top: 0.75rem !important; }
+body.compact-mode .space-y-4 > * + * { margin-top: 0.5rem !important; }
+body.compact-mode .py-12 { padding-top: 1.5rem !important; padding-bottom: 1.5rem !important; }
+
+body.no-animations,
+body.no-animations *,
+body.no-animations *::before,
+body.no-animations *::after {
+  animation: none !important;
+  transition: none !important;
 }
