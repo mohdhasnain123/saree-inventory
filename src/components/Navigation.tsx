@@ -49,17 +49,20 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="bg-card shadow-card"
-        >
-          {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-        </Button>
-      </div>
+      {/* Mobile Menu Button — only visible when sidebar is CLOSED so it never overlaps the logo */}
+      {!isMobileMenuOpen && (
+        <div className="lg:hidden fixed top-4 left-4 z-50">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="bg-card shadow-card"
+            aria-label="Open menu"
+          >
+            <Menu className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
 
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (
@@ -74,8 +77,8 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
       )}>
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="p-6 border-b border-border">
-            <div className="flex items-center gap-3">
+          <div className="p-6 border-b border-border relative">
+            <div className="flex items-center gap-3 pr-10">
               <div className="p-2 bg-gradient-primary rounded-lg">
                 <Factory className="w-6 h-6 text-primary-foreground" />
               </div>
@@ -84,6 +87,16 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
                 <p className="text-sm text-muted-foreground">Manufacturing System</p>
               </div>
             </div>
+            {/* Close button rendered INSIDE the sidebar header on mobile */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="lg:hidden absolute top-3 right-3 h-8 w-8"
+              aria-label="Close menu"
+            >
+              <X className="w-4 h-4" />
+            </Button>
           </div>
 
           {/* Navigation Items */}
