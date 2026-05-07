@@ -21,7 +21,6 @@ interface Saree {
   sellingPrice: number;
   totalValue: number;
   profitMargin: number;
-  dateManufactured: string;
   status: "available" | "low-stock" | "out-of-stock";
 }
 
@@ -84,7 +83,6 @@ const SareeInventory = () => {
     colors: [{ color: "", quantity: "" }] as { color: string; quantity: string }[],
     costPrice: "",
     sellingPrice: "",
-    dateManufactured: "",
   });
 
   const getStatusColor = (status: Saree["status"]) => {
@@ -129,7 +127,6 @@ const SareeInventory = () => {
       sellingPrice,
       totalValue,
       profitMargin,
-      dateManufactured: formData.dateManufactured,
       status,
     };
 
@@ -139,7 +136,7 @@ const SareeInventory = () => {
       createMutation.mutate(payload);
     }
 
-    setFormData({ type: "", design: "", colors: [{ color: "", quantity: "" }], costPrice: "", sellingPrice: "", dateManufactured: "" });
+    setFormData({ type: "", design: "", colors: [{ color: "", quantity: "" }], costPrice: "", sellingPrice: "" });
     setEditingSaree(null);
     setIsDialogOpen(false);
   };
@@ -154,7 +151,6 @@ const SareeInventory = () => {
         : [{ color: "", quantity: "" }],
       costPrice: saree.costPrice.toString(),
       sellingPrice: saree.sellingPrice.toString(),
-      dateManufactured: saree.dateManufactured,
     });
     setIsDialogOpen(true);
   };
@@ -261,15 +257,11 @@ const SareeInventory = () => {
                     <Input id="sellingPrice" type="number" value={formData.sellingPrice} onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })} placeholder="0" required />
                   </div>
                 </div>
-                <div>
-                  <Label htmlFor="dateManufactured">Date Manufactured</Label>
-                  <Input id="dateManufactured" type="date" value={formData.dateManufactured} onChange={(e) => setFormData({ ...formData, dateManufactured: e.target.value })} required />
-                </div>
                 <div className="flex gap-3 pt-4">
                   <Button type="submit" className="flex-1">
                     {editingSaree ? "Update" : "Add"} Saree
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => { setIsDialogOpen(false); setEditingSaree(null); setFormData({ type: "", design: "", colors: [{ color: "", quantity: "" }], costPrice: "", sellingPrice: "", dateManufactured: "" }); }}>
+                  <Button type="button" variant="outline" onClick={() => { setIsDialogOpen(false); setEditingSaree(null); setFormData({ type: "", design: "", colors: [{ color: "", quantity: "" }], costPrice: "", sellingPrice: "" }); }}>
                     Cancel
                   </Button>
                 </div>
