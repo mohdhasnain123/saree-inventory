@@ -7,7 +7,9 @@
     // Single Page Apps for GitHub Pages
     // Adapted from https://github.com/rafgraph/spa-github-pages (MIT)
     // Redirects deep links to index.html with the path encoded so the SPA router can restore it.
-    var pathSegmentsToKeep = 1; // /<repo-name>/
+    // 0 when serving from a custom domain root (e.g. saree-inventory.is-a.dev/)
+    // 1 when serving under /<repo-name>/ on github.io
+    var pathSegmentsToKeep = 0;
     var l = window.location;
     l.replace(
       l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +

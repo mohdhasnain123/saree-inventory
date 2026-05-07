@@ -35,7 +35,10 @@ jobs:
           # Public URL of the deployed backend, exposed to the browser bundle.
           # Override via Settings -> Secrets and variables -> Actions -> Variables.
           VITE_API_URL: ${{ vars.VITE_API_URL || 'https://saree-inventory-backend.onrender.com/api' }}
-          VITE_BASE_PATH: /${{ github.event.repository.name }}/
+          # If a custom domain is configured (Settings -> Pages -> Custom domain),
+          # set repo Variable VITE_BASE_PATH=/ so assets are served from the root.
+          # Without a custom domain, falls back to /<repo-name>/.
+          VITE_BASE_PATH: ${{ vars.VITE_BASE_PATH || format('/{0}/', github.event.repository.name) }}
         run: npm run build
 
       - name: Upload artifact
