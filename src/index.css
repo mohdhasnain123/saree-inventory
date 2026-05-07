@@ -134,9 +134,17 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html,
   body {
     @apply bg-background text-foreground;
   }
+}
+
+html.dark,
+html.dark body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  color-scheme: dark;
 }
 
 body.compact-mode {

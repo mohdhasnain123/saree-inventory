@@ -83,8 +83,16 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const root = document.documentElement;
-    if (settings.appearance.darkMode) root.classList.add("dark");
-    else root.classList.remove("dark");
+    const body = document.body;
+    if (settings.appearance.darkMode) {
+      root.classList.add("dark");
+      body.classList.add("dark");
+      root.style.colorScheme = "dark";
+    } else {
+      root.classList.remove("dark");
+      body.classList.remove("dark");
+      root.style.colorScheme = "light";
+    }
   }, [settings.appearance.darkMode]);
 
   useEffect(() => {

@@ -75,9 +75,9 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
         "fixed inset-y-0 left-0 z-40 w-64 bg-gradient-card border-r border-border shadow-elevated transform transition-transform duration-300 ease-in-out",
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full min-h-0">
           {/* Logo */}
-          <div className="p-6 border-b border-border relative">
+          <div className="p-4 border-b border-border relative shrink-0">
             <div className="flex items-center gap-3 pr-10">
               <div className="p-2 bg-gradient-primary rounded-lg">
                 <Factory className="w-6 h-6 text-primary-foreground" />
@@ -100,13 +100,13 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
           </div>
 
           {/* Navigation Items */}
-          <nav className="flex-1 p-4 space-y-2">
+          <nav className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1">
             {navigationItems.map((item) => (
               <Button
                 key={item.id}
                 variant={activeTab === item.id ? "default" : "ghost"}
                 className={cn(
-                  "w-full justify-start gap-3 h-11",
+                  "w-full justify-start gap-3 h-10",
                   activeTab === item.id 
                     ? "bg-gradient-primary shadow-manufacturing text-primary-foreground" 
                     : "hover:bg-secondary/80"
@@ -122,11 +122,11 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
             ))}
           </nav>
 
-          {/* Footer */}
-          <div className="p-4 border-t border-border space-y-3">
+          {/* Footer (always pinned at bottom) */}
+          <div className="p-3 border-t border-border space-y-2 shrink-0 bg-gradient-card">
             {user && (
               <div className="flex items-center gap-2 px-1">
-                <UserCircle2 className="w-5 h-5 text-muted-foreground" />
+                <UserCircle2 className="w-5 h-5 text-muted-foreground shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-foreground truncate">
                     {user.name || user.username}
@@ -146,10 +146,9 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
               <LogOut className="w-4 h-4" />
               Logout
             </Button>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">Version 1.0.0</p>
-              <p className="text-xs text-muted-foreground mt-1">© 2026 SareeFlow</p>
-            </div>
+            <p className="text-[10px] text-muted-foreground text-center leading-tight">
+              v1.0.0 &middot; &copy; 2026 SareeFlow
+            </p>
           </div>
         </div>
       </div>
