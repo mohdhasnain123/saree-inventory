@@ -111,14 +111,14 @@ const NewProductionDialog = ({ open, onOpenChange }: NewProductionDialogProps) =
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+      <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-hidden p-4 sm:p-6">
         <DialogHeader><DialogTitle className="flex items-center gap-2"><Factory className="w-5 h-5" />New Production Order</DialogTitle></DialogHeader>
 
         <div className="overflow-y-auto max-h-[70vh] space-y-6">
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2"><Shirt className="w-4 h-4" />Basic Information</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Saree Type *</Label>
                   <Select value={productionData.sareeType} onValueChange={(v) => setProductionData({ ...productionData, sareeType: v })}>
@@ -131,7 +131,7 @@ const NewProductionDialog = ({ open, onOpenChange }: NewProductionDialogProps) =
                   <Input value={productionData.design} onChange={(e) => setProductionData({ ...productionData, design: e.target.value })} placeholder="Enter design name" />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2"><Label>Quantity *</Label><Input type="number" value={productionData.quantity} onChange={(e) => setProductionData({ ...productionData, quantity: e.target.value })} placeholder="Number of sarees" /></div>
                 <div className="space-y-2">
                   <Label>Priority</Label>
@@ -145,7 +145,7 @@ const NewProductionDialog = ({ open, onOpenChange }: NewProductionDialogProps) =
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <Card>
               <CardHeader><CardTitle className="flex items-center gap-2"><Users className="w-4 h-4" />Assign Workers</CardTitle></CardHeader>
               <CardContent>

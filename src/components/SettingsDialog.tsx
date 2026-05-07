@@ -82,7 +82,7 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+      <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-hidden p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="w-5 h-5" /> System Settings
@@ -90,12 +90,12 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
         </DialogHeader>
 
         <Tabs defaultValue="company" className="flex-1 overflow-hidden">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="company"><Building className="w-4 h-4 mr-2" />Company</TabsTrigger>
-            <TabsTrigger value="notifications"><Bell className="w-4 h-4 mr-2" />Notifications</TabsTrigger>
-            <TabsTrigger value="security"><Shield className="w-4 h-4 mr-2" />Security</TabsTrigger>
-            <TabsTrigger value="data"><Database className="w-4 h-4 mr-2" />Data</TabsTrigger>
-            <TabsTrigger value="appearance"><Palette className="w-4 h-4 mr-2" />Appearance</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 h-auto">
+            <TabsTrigger value="company" className="text-xs sm:text-sm"><Building className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Company</span></TabsTrigger>
+            <TabsTrigger value="notifications" className="text-xs sm:text-sm"><Bell className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Notifications</span></TabsTrigger>
+            <TabsTrigger value="security" className="text-xs sm:text-sm"><Shield className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Security</span></TabsTrigger>
+            <TabsTrigger value="data" className="text-xs sm:text-sm"><Database className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Data</span></TabsTrigger>
+            <TabsTrigger value="appearance" className="text-xs sm:text-sm"><Palette className="w-4 h-4 sm:mr-2" /><span className="hidden sm:inline">Appearance</span></TabsTrigger>
           </TabsList>
 
           <div className="overflow-y-auto max-h-96 mt-4">
@@ -103,12 +103,12 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
               <Card>
                 <CardHeader><CardTitle>Company Information</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2"><Label>Company Name</Label><Input value={settings.companyName} onChange={(e) => updateSetting("companyName", e.target.value)} /></div>
                     <div className="space-y-2"><Label>Currency</Label><Input value={settings.currency} onChange={(e) => updateSetting("currency", e.target.value)} /></div>
                   </div>
                   <div className="space-y-2"><Label>Address</Label><Input value={settings.companyAddress} onChange={(e) => updateSetting("companyAddress", e.target.value)} /></div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2"><Label>Contact Email</Label><Input type="email" value={settings.contactEmail} onChange={(e) => updateSetting("contactEmail", e.target.value)} /></div>
                     <div className="space-y-2"><Label>Contact Phone</Label><Input value={settings.contactPhone} onChange={(e) => updateSetting("contactPhone", e.target.value)} /></div>
                   </div>
@@ -145,7 +145,7 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
                     <Switch checked={settings.security.twoFactor} onCheckedChange={(c) => updateSetting("security.twoFactor", c)} />
                   </div>
                   <Separator />
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2"><Label>Session Timeout (minutes)</Label><Input type="number" value={settings.security.sessionTimeout} onChange={(e) => updateSetting("security.sessionTimeout", parseInt(e.target.value))} /></div>
                     <div className="space-y-2"><Label>Password Expiry (days)</Label><Input type="number" value={settings.security.passwordExpiry} onChange={(e) => updateSetting("security.passwordExpiry", parseInt(e.target.value))} /></div>
                   </div>
@@ -157,7 +157,7 @@ const SettingsDialog = ({ open, onOpenChange }: SettingsDialogProps) => {
               <Card>
                 <CardHeader><CardTitle>Data Management</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Button variant="outline" className="h-20 flex flex-col items-center gap-2"><Database className="w-6 h-6" /><div className="text-center"><div className="font-medium">Backup Data</div><div className="text-xs text-muted-foreground">Export all data</div></div></Button>
                     <Button variant="outline" className="h-20 flex flex-col items-center gap-2"><Database className="w-6 h-6" /><div className="text-center"><div className="font-medium">Import Data</div><div className="text-xs text-muted-foreground">Import from file</div></div></Button>
                   </div>
