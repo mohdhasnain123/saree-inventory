@@ -159,7 +159,7 @@ const RawMaterials = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
+        <div className="pl-12 lg:pl-0">
           <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Package className="w-6 h-6 text-primary" />
             Raw Materials Inventory

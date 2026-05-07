@@ -178,9 +178,9 @@ const Workers = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Workers Management</h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="pl-12 lg:pl-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Workers Management</h1>
           <p className="text-muted-foreground mt-1">Track saree submissions, warp progress, wages and advances</p>
         </div>
         <Dialog open={canWrite && isAddDialogOpen} onOpenChange={(open) => canWrite && setIsAddDialogOpen(open)}>

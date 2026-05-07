@@ -187,9 +187,9 @@ const Machines = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Machine Management</h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="pl-12 lg:pl-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Machine Management</h1>
           <p className="text-muted-foreground mt-1">Monitor and maintain your manufacturing equipment</p>
         </div>
         <Dialog open={canWrite && isAddDialogOpen} onOpenChange={(o) => { if (!canWrite) return; setIsAddDialogOpen(o); if (!o) resetForm(); }}>
