@@ -37,8 +37,11 @@ import { useToast } from "@/hooks/use-toast";
 
 interface ReportData {
   period: string;
+  year: number;
+  availableYears: number[];
   monthlyData: { month: string; sales: number; cost: number; profit: number; production: number }[];
   quarterlyData: { quarter: string; sales: number; cost: number; profit: number; production: number }[];
+  yearlyData: { year: string; sales: number; cost: number; profit: number; production: number }[];
   productionByType: { name: string; value: number; color: string; percentage: number }[];
   machineUtilization: { name: string; utilization: number; efficiency: number }[];
   workerProductivity: { month: string; productivity: number; efficiency: number }[];
@@ -55,13 +58,19 @@ interface ReportData {
 }
 
 const Reports = () => {
-  const [selectedPeriod, setSelectedPeriod] = useState("monthly");
+  const [selectedPeriod, setSelectedPeriod] = useState<"monthly" | "quarterly" | "yearly">(
+    "monthly"
+  );
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedReport] = useState("overview");
   const { toast } = useToast();
 
   const { data, isLoading } = useQuery<ReportData>({
-    queryKey: ["reports", selectedPeriod],
-    queryFn: () => api.get<ReportData>(`/reports?period=${selectedPeriod}`),
+    queryKey: ["reports", selectedPeriod, selectedYear],
+    queryFn: () =>
+      api.get<ReportData>(
+        `/reports?period=${selectedPeriod}&year=${selectedYear}`
+      ),
   });
 
   const [quickReportDialog, setQuickReportDialog] = useState(false);
@@ -98,7 +107,7 @@ const Reports = () => {
         return {
           title: "Financial Report",
           rows: [
-            [selectedPeriod === "quarterly" ? "Quarter" : "Month", "Sales", "Cost", "Profit"],
+            [periodLabel, "Sales", "Cost", "Profit"],
             ...currentData.map((d: any) => [d[xKey], d.sales, d.cost, d.profit]),
             ["Total", data.kpi.totalRevenue, data.kpi.totalCost, data.kpi.totalProfit],
           ],
@@ -107,7 +116,7 @@ const Reports = () => {
         return {
           title: "Production Report",
           rows: [
-            [selectedPeriod === "quarterly" ? "Quarter" : "Month", "Production"],
+            [periodLabel, "Production"],
             ...currentData.map((d: any) => [d[xKey], d.production]),
             ["Total", "", data.kpi.totalProduction],
           ],
@@ -150,8 +159,12 @@ const Reports = () => {
     if (!data) return;
     const { title, rows } = getReportRows(reportType || "Overview Report");
     const safeName = title.replace(/\s+/g, "_");
+    const fileSuffix =
+      selectedPeriod === "yearly"
+        ? "yearly"
+        : `${selectedPeriod}_${selectedYear}`;
     if (format === "csv") {
-      downloadFile(`${safeName}_${selectedPeriod}.csv`, toCSV(rows), "text/csv;charset=utf-8;");
+      downloadFile(`${safeName}_${fileSuffix}.csv`, toCSV(rows), "text/csv;charset=utf-8;");
     } else {
       const doc = new jsPDF();
       doc.setFillColor(37, 99, 235);
@@ -163,7 +176,11 @@ const Reports = () => {
       doc.text(title, 14, 20);
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(10);
-      doc.text(`Period: ${selectedPeriod}`, 14, 33);
+      const periodText =
+        selectedPeriod === "yearly"
+          ? "Period: Yearly (last 5 years)"
+          : `Period: ${selectedPeriod} (${selectedYear})`;
+      doc.text(periodText, 14, 33);
       doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 39);
       autoTable(doc, {
         startY: 45,
@@ -172,7 +189,7 @@ const Reports = () => {
         headStyles: { fillColor: [37, 99, 235] },
         styles: { fontSize: 9 },
       });
-      doc.save(`${safeName}_${selectedPeriod}.pdf`);
+      doc.save(`${safeName}_${fileSuffix}.pdf`);
     }
     toast({ title: "Downloaded", description: `${title} (${format.toUpperCase()})` });
   };
@@ -190,8 +207,36 @@ const Reports = () => {
     );
   }
 
-  const currentData = selectedPeriod === "quarterly" ? data.quarterlyData : data.monthlyData;
-  const xKey = selectedPeriod === "quarterly" ? "quarter" : "month";
+  const currentData =
+    selectedPeriod === "quarterly"
+      ? data.quarterlyData
+      : selectedPeriod === "yearly"
+      ? data.yearlyData
+      : data.monthlyData;
+  const xKey =
+    selectedPeriod === "quarterly"
+      ? "quarter"
+      : selectedPeriod === "yearly"
+      ? "year"
+      : "month";
+  const periodLabel =
+    selectedPeriod === "quarterly"
+      ? "Quarter"
+      : selectedPeriod === "yearly"
+      ? "Year"
+      : "Month";
+
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from(
+    new Set([
+      ...(data.availableYears || []),
+      currentYear,
+      currentYear - 1,
+      currentYear - 2,
+      currentYear - 3,
+      currentYear - 4,
+    ])
+  ).sort((a, b) => b - a);
 
   const kpiData = {
     totalRevenue: `₹${data.kpi.totalRevenue.toLocaleString()}`,
@@ -210,13 +255,36 @@ const Reports = () => {
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">Comprehensive business insights and performance metrics</p>
         </div>
         <div className="flex flex-wrap gap-2 sm:gap-3">
-          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+          <Select
+            value={selectedPeriod}
+            onValueChange={(v) =>
+              setSelectedPeriod(v as "monthly" | "quarterly" | "yearly")
+            }
+          >
             <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="monthly">Monthly</SelectItem>
               <SelectItem value="quarterly">Quarterly</SelectItem>
+              <SelectItem value="yearly">Yearly</SelectItem>
             </SelectContent>
           </Select>
+          {selectedPeriod !== "yearly" && (
+            <Select
+              value={String(selectedYear)}
+              onValueChange={(v) => setSelectedYear(parseInt(v, 10))}
+            >
+              <SelectTrigger className="w-[110px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {yearOptions.map((y) => (
+                  <SelectItem key={y} value={String(y)}>
+                    {y}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Button variant="outline" size="sm" onClick={() => exportReport("pdf")}><Download className="w-4 h-4 mr-2" />Export PDF</Button>
           <Button variant="outline" size="sm" onClick={() => exportReport("csv")}><Download className="w-4 h-4 mr-2" />Export CSV</Button>
         </div>
