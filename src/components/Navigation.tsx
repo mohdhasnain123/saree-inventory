@@ -1,8 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useChangePassword } from "@/contexts/ChangePasswordContext";
 import { toast } from "@/components/ui/use-toast";
 import {
   LayoutDashboard,
@@ -18,6 +27,8 @@ import {
   X,
   LogOut,
   UserCircle2,
+  KeyRound,
+  ChevronUp,
 } from "lucide-react";
 
 interface NavigationProps {
@@ -28,6 +39,7 @@ interface NavigationProps {
 const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
+  const { open: openChangePassword } = useChangePassword();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -125,27 +137,48 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
           {/* Footer (always pinned at bottom) */}
           <div className="p-3 border-t border-border space-y-2 shrink-0 bg-gradient-card">
             {user && (
-              <div className="flex items-center gap-2 px-1">
-                <UserCircle2 className="w-5 h-5 text-muted-foreground shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {user.name || user.username}
-                  </p>
-                  <p className="text-xs text-muted-foreground capitalize truncate">
-                    {user.role}
-                  </p>
-                </div>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full h-auto justify-start gap-2 px-2 py-2 hover:bg-secondary/80"
+                  >
+                    <UserCircle2 className="w-5 h-5 text-muted-foreground shrink-0" />
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {user.name || user.username}
+                      </p>
+                      <p className="text-xs text-muted-foreground capitalize truncate">
+                        {user.role}
+                      </p>
+                    </div>
+                    <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" side="top" className="w-56">
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-medium leading-none">
+                        {user.name || user.username}
+                      </span>
+                      <span className="text-xs leading-none text-muted-foreground capitalize">
+                        Signed in as {user.role}
+                      </span>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => openChangePassword()}>
+                    <KeyRound className="w-4 h-4 mr-2" />
+                    Change Password
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={handleLogout}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full justify-start gap-2"
-              onClick={handleLogout}
-            >
-              <LogOut className="w-4 h-4" />
-              Logout
-            </Button>
             <p className="text-[10px] text-muted-foreground text-center leading-tight">
               v1.0.0 &middot; &copy; 2026 SareeFlow
             </p>

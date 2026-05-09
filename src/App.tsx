@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import { AuthProvider } from "./contexts/AuthContext";
 import { SettingsProvider } from "./contexts/SettingsContext";
+import { ChangePasswordProvider } from "./contexts/ChangePasswordContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SessionTimeout from "./components/SessionTimeout";
 import PasswordExpiryNotifier from "./components/PasswordExpiryNotifier";
@@ -22,9 +23,10 @@ const App = () => (
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <AuthProvider>
           <SettingsProvider>
-            <SessionTimeout />
-            <PasswordExpiryNotifier />
-            <Routes>
+            <ChangePasswordProvider>
+              <SessionTimeout />
+              <PasswordExpiryNotifier />
+              <Routes>
               <Route path="/login" element={<Login />} />
               <Route
                 path="/"
@@ -37,6 +39,7 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </ChangePasswordProvider>
           </SettingsProvider>
         </AuthProvider>
       </BrowserRouter>
