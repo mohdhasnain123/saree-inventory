@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChangePassword } from "@/contexts/ChangePasswordContext";
 import { toast } from "@/components/ui/use-toast";
+import UserManagementDialog from "@/components/UserManagementDialog";
 import {
   LayoutDashboard,
   Package,
@@ -29,6 +30,7 @@ import {
   UserCircle2,
   KeyRound,
   ChevronUp,
+  ShieldCheck,
 } from "lucide-react";
 
 interface NavigationProps {
@@ -38,7 +40,8 @@ interface NavigationProps {
 
 const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const [isUserMgmtOpen, setIsUserMgmtOpen] = useState(false);
+  const { user, isAdmin, logout } = useAuth();
   const { open: openChangePassword } = useChangePassword();
   const navigate = useNavigate();
 
@@ -171,6 +174,12 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
                     <KeyRound className="w-4 h-4 mr-2" />
                     Change Password
                   </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem onSelect={() => setIsUserMgmtOpen(true)}>
+                      <ShieldCheck className="w-4 h-4 mr-2" />
+                      Manage Users
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={handleLogout}>
                     <LogOut className="w-4 h-4 mr-2" />
@@ -185,6 +194,13 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
           </div>
         </div>
       </div>
+
+      {isAdmin && (
+        <UserManagementDialog
+          open={isUserMgmtOpen}
+          onOpenChange={setIsUserMgmtOpen}
+        />
+      )}
     </>
   );
 };
