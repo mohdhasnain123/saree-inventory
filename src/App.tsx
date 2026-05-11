@@ -9,6 +9,7 @@ import Login from "./pages/Login";
 import { AuthProvider } from "./contexts/AuthContext";
 import { SettingsProvider } from "./contexts/SettingsContext";
 import { ChangePasswordProvider } from "./contexts/ChangePasswordContext";
+import { ProductionTypeProvider } from "./contexts/ProductionTypeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SessionTimeout from "./components/SessionTimeout";
 import PasswordExpiryNotifier from "./components/PasswordExpiryNotifier";
@@ -24,9 +25,10 @@ const App = () => (
         <AuthProvider>
           <SettingsProvider>
             <ChangePasswordProvider>
-              <SessionTimeout />
-              <PasswordExpiryNotifier />
-              <Routes>
+              <ProductionTypeProvider>
+                <SessionTimeout />
+                <PasswordExpiryNotifier />
+                <Routes>
               <Route path="/login" element={<Login />} />
               <Route
                 path="/"
@@ -39,6 +41,7 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+              </ProductionTypeProvider>
             </ChangePasswordProvider>
           </SettingsProvider>
         </AuthProvider>

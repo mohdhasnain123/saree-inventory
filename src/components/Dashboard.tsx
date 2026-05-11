@@ -30,6 +30,7 @@ import NewProductionDialog from "./NewProductionDialog";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useProductionType } from "@/contexts/ProductionTypeContext";
 import { AlertTriangle } from "lucide-react";
 
 interface DashboardData {
@@ -60,10 +61,11 @@ const Dashboard = () => {
   const [isProductionOpen, setIsProductionOpen] = useState(false);
   const { canWrite, isAdmin } = useAuth();
   const { formatMoney, notifyEnabled } = useSettings();
+  const { typeParam, typeQuery, label: typeLabel } = useProductionType();
 
   const { data, isLoading } = useQuery<DashboardData>({
-    queryKey: ["dashboard"],
-    queryFn: () => api.get<DashboardData>("/dashboard"),
+    queryKey: ["dashboard", typeParam],
+    queryFn: () => api.get<DashboardData>(`/dashboard${typeQuery}`),
   });
 
   const { data: materialsLite = [] } = useQuery<MaterialLite[]>({
@@ -72,8 +74,8 @@ const Dashboard = () => {
     enabled: notifyEnabled("lowStock"),
   });
   const { data: sareesLite = [] } = useQuery<SareeLite[]>({
-    queryKey: ["sarees"],
-    queryFn: () => api.get<SareeLite[]>("/sarees"),
+    queryKey: ["sarees", typeParam],
+    queryFn: () => api.get<SareeLite[]>(`/sarees${typeQuery}`),
     enabled: notifyEnabled("lowStock"),
   });
 
@@ -100,7 +102,14 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gradient-background p-4 sm:p-6 space-y-6 min-w-0">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 pl-12 lg:pl-0">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground break-words">Saree Manufacturing Dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground break-words">
+            Saree Manufacturing Dashboard
+            {typeParam && (
+              <span className="ml-2 align-middle text-xs sm:text-sm font-medium bg-primary/15 text-primary px-2 py-1 rounded-md capitalize">
+                {typeLabel} only
+              </span>
+            )}
+          </h1>
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             Monitor your production, inventory, and sales performance
           </p>

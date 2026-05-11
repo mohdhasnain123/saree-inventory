@@ -11,11 +11,13 @@ import { Shirt, Plus, Search, Edit, Trash2, Calendar, IndianRupee, X } from "luc
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProductionType } from "@/contexts/ProductionTypeContext";
 
 interface Saree {
   id: string;
   type: string;
   design: string;
+  productionType?: "powerloom" | "handloom" | "";
   colors: { color: string; quantity: number }[];
   costPrice: number;
   sellingPrice: number;
@@ -33,10 +35,11 @@ const SareeInventory = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { canWrite } = useAuth();
+  const { typeParam, typeQuery } = useProductionType();
 
   const { data: sarees = [], isLoading } = useQuery<Saree[]>({
-    queryKey: ["sarees"],
-    queryFn: () => api.get<Saree[]>("/sarees"),
+    queryKey: ["sarees", typeParam],
+    queryFn: () => api.get<Saree[]>(`/sarees${typeQuery}`),
   });
 
   const { data: finishingCosts } = useQuery<FinishingCosts>({
@@ -80,6 +83,7 @@ const SareeInventory = () => {
   const [formData, setFormData] = useState({
     type: "",
     design: "",
+    productionType: "powerloom" as "powerloom" | "handloom",
     colors: [{ color: "", quantity: "" }] as { color: string; quantity: string }[],
     costPrice: "",
     sellingPrice: "",
@@ -122,6 +126,7 @@ const SareeInventory = () => {
     const payload: Partial<Saree> = {
       type: formData.type,
       design: formData.design,
+      productionType: formData.productionType,
       colors,
       costPrice,
       sellingPrice,
@@ -136,7 +141,7 @@ const SareeInventory = () => {
       createMutation.mutate(payload);
     }
 
-    setFormData({ type: "", design: "", colors: [{ color: "", quantity: "" }], costPrice: "", sellingPrice: "" });
+    setFormData({ type: "", design: "", productionType: "powerloom", colors: [{ color: "", quantity: "" }], costPrice: "", sellingPrice: "" });
     setEditingSaree(null);
     setIsDialogOpen(false);
   };
@@ -146,6 +151,7 @@ const SareeInventory = () => {
     setFormData({
       type: saree.type,
       design: saree.design,
+      productionType: (saree.productionType === "handloom" ? "handloom" : "powerloom"),
       colors: saree.colors.length > 0
         ? saree.colors.map((c) => ({ color: c.color, quantity: c.quantity.toString() }))
         : [{ color: "", quantity: "" }],
@@ -205,19 +211,34 @@ const SareeInventory = () => {
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="type">Saree Type</Label>
-                  <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
-                    <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Cotton">Cotton</SelectItem>
-                      <SelectItem value="Silk">Silk</SelectItem>
-                      <SelectItem value="Georgette">Georgette</SelectItem>
-                      <SelectItem value="Chiffon">Chiffon</SelectItem>
-                      <SelectItem value="Net">Net</SelectItem>
-                      <SelectItem value="Crepe">Crepe</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="type">Saree Type</Label>
+                    <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
+                      <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Cotton">Cotton</SelectItem>
+                        <SelectItem value="Silk">Silk</SelectItem>
+                        <SelectItem value="Georgette">Georgette</SelectItem>
+                        <SelectItem value="Chiffon">Chiffon</SelectItem>
+                        <SelectItem value="Net">Net</SelectItem>
+                        <SelectItem value="Crepe">Crepe</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="productionType">Production</Label>
+                    <Select
+                      value={formData.productionType}
+                      onValueChange={(v) => setFormData({ ...formData, productionType: v as "powerloom" | "handloom" })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="powerloom">Powerloom</SelectItem>
+                        <SelectItem value="handloom">Handloom</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="design">Design/Pattern</Label>

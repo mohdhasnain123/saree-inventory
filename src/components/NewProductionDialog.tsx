@@ -13,6 +13,7 @@ import { Factory, Shirt, Users, Settings, Package, Plus, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useProductionType } from "@/contexts/ProductionTypeContext";
 
 interface NewProductionDialogProps {
   open: boolean;
@@ -27,16 +28,17 @@ const NewProductionDialog = ({ open, onOpenChange }: NewProductionDialogProps) =
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { notifyEnabled } = useSettings();
+  const { typeParam, typeQuery } = useProductionType();
 
   const { data: workers = [] } = useQuery<WorkerLite[]>({
-    queryKey: ["workers"],
-    queryFn: () => api.get<WorkerLite[]>("/workers"),
+    queryKey: ["workers", typeParam],
+    queryFn: () => api.get<WorkerLite[]>(`/workers${typeQuery}`),
     enabled: open,
   });
 
   const { data: machines = [] } = useQuery<MachineLite[]>({
-    queryKey: ["machines"],
-    queryFn: () => api.get<MachineLite[]>("/machines"),
+    queryKey: ["machines", typeParam],
+    queryFn: () => api.get<MachineLite[]>(`/machines${typeQuery}`),
     enabled: open,
   });
 
@@ -47,7 +49,8 @@ const NewProductionDialog = ({ open, onOpenChange }: NewProductionDialogProps) =
   });
 
   const createMutation = useMutation({
-    mutationFn: (body: Record<string, unknown>) => api.post("/productions", body),
+    mutationFn: (body: Record<string, unknown>) =>
+      api.post("/productions", { ...body, productionType: typeParam || "powerloom" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["productions"] });
       if (notifyEnabled("production")) {

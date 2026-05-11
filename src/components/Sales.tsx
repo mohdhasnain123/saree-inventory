@@ -14,6 +14,7 @@ import autoTable from "jspdf-autotable";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useProductionType } from "@/contexts/ProductionTypeContext";
 
 const CURRENCY_WORDS: Record<string, { major: string; minor: string }> = {
   INR: { major: "Indian Rupees", minor: "Paise" },
@@ -399,10 +400,11 @@ const Sales = () => {
   const queryClient = useQueryClient();
   const { canWrite } = useAuth();
   const { settings, formatMoney, notifyEnabled } = useSettings();
+  const { typeParam, typeQuery } = useProductionType();
 
   const { data: sales = [], isLoading } = useQuery<Sale[]>({
-    queryKey: ["sales"],
-    queryFn: () => api.get<Sale[]>("/sales"),
+    queryKey: ["sales", typeParam],
+    queryFn: () => api.get<Sale[]>(`/sales${typeQuery}`),
   });
 
   const createMutation = useMutation({

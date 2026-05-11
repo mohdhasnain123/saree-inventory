@@ -12,6 +12,7 @@ import { Scissors, IndianRupee, Save, Plus, CheckCircle2, Trash2, Calendar, User
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProductionType } from "@/contexts/ProductionTypeContext";
 
 interface FinishingCosts {
   cuttingCost: number;
@@ -38,6 +39,7 @@ const Finishing = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { canWrite } = useAuth();
+  const { typeParam, typeQuery } = useProductionType();
 
   const { data: costsData } = useQuery<FinishingCosts>({
     queryKey: ["finishing", "costs"],
@@ -45,8 +47,8 @@ const Finishing = () => {
   });
 
   const { data: jobs = [] } = useQuery<FinishingJob[]>({
-    queryKey: ["finishing", "jobs"],
-    queryFn: () => api.get<FinishingJob[]>("/finishing/jobs"),
+    queryKey: ["finishing", "jobs", typeParam],
+    queryFn: () => api.get<FinishingJob[]>(`/finishing/jobs${typeQuery}`),
   });
 
   const [costs, setCosts] = useState<FinishingCosts>({ cuttingCost: 0, waxingCost: 0 });

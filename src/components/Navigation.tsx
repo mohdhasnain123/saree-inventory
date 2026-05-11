@@ -12,6 +12,10 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useChangePassword } from "@/contexts/ChangePasswordContext";
+import {
+  useProductionType,
+  ProductionType,
+} from "@/contexts/ProductionTypeContext";
 import { toast } from "@/components/ui/use-toast";
 import UserManagementDialog from "@/components/UserManagementDialog";
 import {
@@ -31,6 +35,10 @@ import {
   KeyRound,
   ChevronUp,
   ShieldCheck,
+  Building2,
+  Cog,
+  Hand,
+  Layers,
 } from "lucide-react";
 
 interface NavigationProps {
@@ -43,6 +51,7 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
   const [isUserMgmtOpen, setIsUserMgmtOpen] = useState(false);
   const { user, isAdmin, logout } = useAuth();
   const { open: openChangePassword } = useChangePassword();
+  const { productionType, setProductionType } = useProductionType();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -59,7 +68,14 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
     { id: "machines", label: "Machines", icon: Settings },
     { id: "finishing", label: "Finishing", icon: Scissors },
     { id: "sales", label: "Sales", icon: ShoppingCart },
+    { id: "customers", label: "Customers", icon: Building2 },
     { id: "reports", label: "Reports", icon: TrendingUp },
+  ];
+
+  const typeOptions: { value: ProductionType; label: string; icon: typeof Cog }[] = [
+    { value: "all", label: "All", icon: Layers },
+    { value: "powerloom", label: "Power", icon: Cog },
+    { value: "handloom", label: "Hand", icon: Hand },
   ];
 
   return (
@@ -112,6 +128,35 @@ const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
             >
               <X className="w-4 h-4" />
             </Button>
+          </div>
+
+          {/* Production type toggle */}
+          <div className="px-3 pt-3 pb-2 border-b border-border shrink-0">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5 px-1">
+              Production
+            </p>
+            <div className="grid grid-cols-3 gap-1 bg-secondary/40 p-1 rounded-md">
+              {typeOptions.map((opt) => {
+                const active = productionType === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setProductionType(opt.value)}
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-0.5 rounded-md py-1.5 text-[11px] font-medium transition-colors",
+                      active
+                        ? "bg-gradient-primary text-primary-foreground shadow-card"
+                        : "text-muted-foreground hover:bg-secondary"
+                    )}
+                    title={`Show ${opt.label} data only`}
+                  >
+                    <opt.icon className="w-3.5 h-3.5" />
+                    <span>{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Navigation Items */}

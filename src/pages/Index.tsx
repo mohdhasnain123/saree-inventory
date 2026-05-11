@@ -8,6 +8,7 @@ import Workers from "@/components/Workers";
 import Machines from "@/components/Machines";
 import Finishing from "@/components/Finishing";
 import Reports from "@/components/Reports";
+import Customers from "@/components/Customers";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -28,6 +29,8 @@ const Index = () => {
         return <Machines />;
       case "finishing":
         return <Finishing />;
+      case "customers":
+        return <Customers />;
       case "reports":
         return <Reports />;
       default:

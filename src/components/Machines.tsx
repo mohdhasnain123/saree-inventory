@@ -12,11 +12,13 @@ import { Settings, Plus, Search, Edit, Trash2, CheckCircle, AlertTriangle, XCirc
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProductionType } from "@/contexts/ProductionTypeContext";
 
 interface Machine {
   id: string;
   name: string;
   type: string;
+  productionType?: "powerloom" | "handloom" | "";
   status: "working" | "maintenance" | "broken" | "idle";
   assignedWorker?: string;
   workerId?: string;
@@ -36,15 +38,16 @@ const Machines = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { canWrite } = useAuth();
+  const { typeParam, typeQuery } = useProductionType();
 
   const { data: machines = [], isLoading } = useQuery<Machine[]>({
-    queryKey: ["machines"],
-    queryFn: () => api.get<Machine[]>("/machines"),
+    queryKey: ["machines", typeParam],
+    queryFn: () => api.get<Machine[]>(`/machines${typeQuery}`),
   });
 
   const { data: workersList = [] } = useQuery<{ id: string; name: string }[]>({
-    queryKey: ["workers"],
-    queryFn: () => api.get<{ id: string; name: string }[]>("/workers"),
+    queryKey: ["workers", typeParam],
+    queryFn: () => api.get<{ id: string; name: string }[]>(`/workers${typeQuery}`),
   });
 
   const createMutation = useMutation({
@@ -82,6 +85,7 @@ const Machines = () => {
   const [newMachine, setNewMachine] = useState<{
     name: string;
     type: string;
+    productionType: "powerloom" | "handloom";
     location: string;
     status: Machine["status"];
     notes: string;
@@ -93,6 +97,7 @@ const Machines = () => {
   }>({
     name: "",
     type: "",
+    productionType: "powerloom",
     location: "",
     status: "working",
     notes: "",
@@ -111,6 +116,7 @@ const Machines = () => {
       setNewMachine({
         name: editingMachine.name,
         type: editingMachine.type,
+        productionType: (editingMachine.productionType === "handloom" ? "handloom" : "powerloom"),
         location: editingMachine.location,
         status: editingMachine.status,
         notes: editingMachine.notes || "",
@@ -125,7 +131,7 @@ const Machines = () => {
   }, [editingMachine]);
 
   const resetForm = () => {
-    setNewMachine({ name: "", type: "", location: "", status: "working", notes: "", sareeType: "", assignedWorker: "", dailyProductionMeters: 0, ratePerMeter: 35, metersPerSaree: 6.5 });
+    setNewMachine({ name: "", type: "", productionType: "powerloom", location: "", status: "working", notes: "", sareeType: "", assignedWorker: "", dailyProductionMeters: 0, ratePerMeter: 35, metersPerSaree: 6.5 });
     setEditingMachine(null);
   };
 
@@ -144,6 +150,7 @@ const Machines = () => {
     const payload: Partial<Machine> = {
       name: newMachine.name,
       type: newMachine.type,
+      productionType: newMachine.productionType,
       status: newMachine.status,
       location: newMachine.location,
       notes: newMachine.notes,
@@ -205,12 +212,29 @@ const Machines = () => {
                 <Label htmlFor="name">Machine Name *</Label>
                 <Input id="name" value={newMachine.name} onChange={(e) => setNewMachine({ ...newMachine, name: e.target.value })} placeholder="Enter machine name" />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="type">Machine Type *</Label>
-                <Select value={newMachine.type} onValueChange={(value) => setNewMachine({ ...newMachine, type: value })}>
-                  <SelectTrigger><SelectValue placeholder="Select machine type" /></SelectTrigger>
-                  <SelectContent>{machineTypes.map((type) => (<SelectItem key={type} value={type}>{type}</SelectItem>))}</SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-2">
+                  <Label htmlFor="type">Machine Type *</Label>
+                  <Select value={newMachine.type} onValueChange={(value) => setNewMachine({ ...newMachine, type: value })}>
+                    <SelectTrigger><SelectValue placeholder="Select machine type" /></SelectTrigger>
+                    <SelectContent>{machineTypes.map((type) => (<SelectItem key={type} value={type}>{type}</SelectItem>))}</SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Production</Label>
+                  <Select
+                    value={newMachine.productionType}
+                    onValueChange={(v) =>
+                      setNewMachine({ ...newMachine, productionType: v as "powerloom" | "handloom" })
+                    }
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="powerloom">Powerloom</SelectItem>
+                      <SelectItem value="handloom">Handloom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="location">Location *</Label>

@@ -14,6 +14,7 @@ import { Users, Plus, Search, Trash2, UserCheck, UserX, IndianRupee, Package, Sc
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProductionType } from "@/contexts/ProductionTypeContext";
 
 interface SareeSubmission { id: string; date: string; quantity: number; note?: string; }
 interface Advance { id: string; date: string; amount: number; note?: string; }
@@ -22,6 +23,7 @@ interface Worker {
   name: string;
   role: string;
   phone: string;
+  productionType?: "powerloom" | "handloom" | "";
   status: "active" | "inactive" | "on-leave";
   joinDate: string;
   machine: string;
@@ -36,10 +38,11 @@ const Workers = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { canWrite } = useAuth();
+  const { typeParam, typeQuery } = useProductionType();
 
   const { data: workers = [], isLoading } = useQuery<Worker[]>({
-    queryKey: ["workers"],
-    queryFn: () => api.get<Worker[]>("/workers"),
+    queryKey: ["workers", typeParam],
+    queryFn: () => api.get<Worker[]>(`/workers${typeQuery}`),
   });
 
   const createMutation = useMutation({
@@ -95,6 +98,7 @@ const Workers = () => {
     name: "",
     role: "",
     phone: "",
+    productionType: "powerloom" as "powerloom" | "handloom",
     machine: "",
     perSareeWage: "",
     warpSize: "",
@@ -131,6 +135,7 @@ const Workers = () => {
       name: newWorker.name,
       role: newWorker.role,
       phone: newWorker.phone,
+      productionType: newWorker.productionType,
       status: newWorker.status,
       joinDate: new Date().toISOString().split("T")[0],
       machine: newWorker.machine || "—",
@@ -198,12 +203,29 @@ const Workers = () => {
                 <Label>Full Name *</Label>
                 <Input value={newWorker.name} onChange={(e) => setNewWorker({ ...newWorker, name: e.target.value })} placeholder="Enter worker's name" />
               </div>
-              <div className="grid gap-2">
-                <Label>Role *</Label>
-                <Select value={newWorker.role} onValueChange={(v) => setNewWorker({ ...newWorker, role: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
-                  <SelectContent>{roles.map((r) => (<SelectItem key={r} value={r}>{r}</SelectItem>))}</SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Role *</Label>
+                  <Select value={newWorker.role} onValueChange={(v) => setNewWorker({ ...newWorker, role: v })}>
+                    <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
+                    <SelectContent>{roles.map((r) => (<SelectItem key={r} value={r}>{r}</SelectItem>))}</SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Production</Label>
+                  <Select
+                    value={newWorker.productionType}
+                    onValueChange={(v) =>
+                      setNewWorker({ ...newWorker, productionType: v as "powerloom" | "handloom" })
+                    }
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="powerloom">Powerloom</SelectItem>
+                      <SelectItem value="handloom">Handloom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">

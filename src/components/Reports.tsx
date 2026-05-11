@@ -34,6 +34,43 @@ import { api } from "@/lib/api";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useToast } from "@/hooks/use-toast";
+import { useProductionType } from "@/contexts/ProductionTypeContext";
+import { useSettings } from "@/contexts/SettingsContext";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Building2 } from "lucide-react";
+
+interface CustomerReportRow {
+  customerId: string | null;
+  customerName: string;
+  businessType: string;
+  productionType: string;
+  status: string;
+  startedDate: string;
+  endedDate: string;
+  endReason: string;
+  totalRevenue: number;
+  totalCost: number;
+  totalProfit: number;
+  orderCount: number;
+  totalQuantity: number;
+  lastOrderDate: string | null;
+  buckets: { label: string; value: number }[];
+}
+
+interface CustomerReportResponse {
+  period: string;
+  year: number;
+  type: string;
+  bucketLabels: string[];
+  rows: CustomerReportRow[];
+}
 
 interface ReportData {
   period: string;
@@ -64,12 +101,24 @@ const Reports = () => {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedReport] = useState("overview");
   const { toast } = useToast();
+  const { typeParam, label: typeLabel } = useProductionType();
+  const { formatMoney } = useSettings();
+
+  const typeQS = typeParam ? `&type=${typeParam}` : "";
 
   const { data, isLoading } = useQuery<ReportData>({
-    queryKey: ["reports", selectedPeriod, selectedYear],
+    queryKey: ["reports", selectedPeriod, selectedYear, typeParam],
     queryFn: () =>
       api.get<ReportData>(
-        `/reports?period=${selectedPeriod}&year=${selectedYear}`
+        `/reports?period=${selectedPeriod}&year=${selectedYear}${typeQS}`
+      ),
+  });
+
+  const { data: customerReport } = useQuery<CustomerReportResponse>({
+    queryKey: ["reports", "customers", selectedPeriod, selectedYear, typeParam],
+    queryFn: () =>
+      api.get<CustomerReportResponse>(
+        `/reports/customers?period=${selectedPeriod}&year=${selectedYear}${typeQS}`
       ),
   });
 
@@ -410,6 +459,67 @@ const Reports = () => {
           </CardContent>
         </Card>
       </div>
+
+      {customerReport && customerReport.rows.length > 0 && (
+        <Card className="bg-gradient-card shadow-card border-0">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-foreground">
+              <Building2 className="w-5 h-5 text-primary" /> Customer Performance
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                {selectedPeriod} • {selectedYear}{typeParam ? ` • ${typeLabel}` : ""}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead className="hidden md:table-cell">Type</TableHead>
+                  <TableHead className="hidden md:table-cell">Status</TableHead>
+                  <TableHead className="text-right">Orders</TableHead>
+                  <TableHead className="text-right">Revenue</TableHead>
+                  <TableHead className="text-right">Profit</TableHead>
+                  {customerReport.bucketLabels.map((b) => (
+                    <TableHead key={b} className="text-right hidden lg:table-cell">{b}</TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {customerReport.rows.slice(0, 10).map((r) => (
+                  <TableRow key={r.customerId || r.customerName}>
+                    <TableCell className="font-medium">{r.customerName}</TableCell>
+                    <TableCell className="hidden md:table-cell capitalize text-muted-foreground">
+                      {r.businessType || "—"}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell capitalize text-muted-foreground">
+                      {r.status || "—"}
+                    </TableCell>
+                    <TableCell className="text-right">{r.orderCount}</TableCell>
+                    <TableCell className="text-right">{formatMoney(r.totalRevenue)}</TableCell>
+                    <TableCell className="text-right text-success">
+                      {formatMoney(r.totalProfit)}
+                    </TableCell>
+                    {r.buckets.map((b) => (
+                      <TableCell
+                        key={b.label}
+                        className="text-right hidden lg:table-cell text-muted-foreground"
+                      >
+                        {b.value ? formatMoney(b.value) : "—"}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            {customerReport.rows.length > 10 && (
+              <p className="text-xs text-muted-foreground mt-3 text-center">
+                Showing top 10 of {customerReport.rows.length} customers
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="bg-gradient-card shadow-card border-0">
         <CardHeader>
