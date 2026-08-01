@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,12 +93,13 @@ const Workers = () => {
   const [submitFor, setSubmitFor] = useState<Worker | null>(null);
   const [advanceFor, setAdvanceFor] = useState<Worker | null>(null);
   const [ledgerFor, setLedgerFor] = useState<Worker | null>(null);
+  const defaultProductionType = (typeParam === "handloom" ? "handloom" : "powerloom") as "powerloom" | "handloom";
 
   const [newWorker, setNewWorker] = useState({
     name: "",
     role: "",
     phone: "",
-    productionType: "powerloom" as "powerloom" | "handloom",
+    productionType: defaultProductionType,
     machine: "",
     perSareeWage: "",
     warpSize: "",
@@ -109,6 +110,10 @@ const Workers = () => {
   const [advance, setAdvance] = useState({ amount: "", note: "" });
 
   const roles = ["Master Weaver", "Weaver", "Dyer", "Finisher", "Quality Inspector", "Helper", "Supervisor"];
+
+  useEffect(() => {
+    setNewWorker((prev) => ({ ...prev, productionType: defaultProductionType }));
+  }, [defaultProductionType]);
 
   const totals = (w: Worker) => {
     const sareesSubmitted = w.submissions.reduce((s, x) => s + x.quantity, 0);
@@ -145,7 +150,7 @@ const Workers = () => {
       submissions: [],
       advances: [],
     });
-    setNewWorker({ name: "", role: "", phone: "", machine: "", perSareeWage: "", warpSize: "", status: "active" });
+    setNewWorker({ name: "", role: "", phone: "", machine: "", perSareeWage: "", warpSize: "", status: "active", productionType: defaultProductionType });
     setIsAddDialogOpen(false);
   };
 

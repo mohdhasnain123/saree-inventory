@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,15 +93,20 @@ const SareeInventory = () => {
   const [editingSaree, setEditingSaree] = useState<Saree | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [sareeToDelete, setSareeToDelete] = useState<string | null>(null);
+  const defaultProductionType = (typeParam === "handloom" ? "handloom" : "powerloom") as "powerloom" | "handloom";
   const [formData, setFormData] = useState({
     type: "",
     design: "",
-    productionType: "powerloom" as "powerloom" | "handloom",
+    productionType: defaultProductionType,
     colors: [{ color: "", quantity: "" }] as { color: string; quantity: string }[],
     costPrice: "",
     sellingPrice: "",
     includeFinishingCost: false,
   });
+
+  useEffect(() => {
+    setFormData((prev) => ({ ...prev, productionType: defaultProductionType }));
+  }, [defaultProductionType]);
 
   const getStatusColor = (status: Saree["status"]) => {
     switch (status) {
@@ -156,7 +161,7 @@ const SareeInventory = () => {
       createMutation.mutate(payload);
     }
 
-    setFormData({ type: "", design: "", productionType: "powerloom", colors: [{ color: "", quantity: "" }], costPrice: "", sellingPrice: "", includeFinishingCost: false });
+    setFormData({ type: "", design: "", productionType: defaultProductionType, colors: [{ color: "", quantity: "" }], costPrice: "", sellingPrice: "", includeFinishingCost: false });
     setEditingSaree(null);
     setIsDialogOpen(false);
   };
@@ -319,7 +324,7 @@ const SareeInventory = () => {
                   <Button type="submit" className="flex-1">
                     {editingSaree ? "Update" : "Add"} Saree
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => { setIsDialogOpen(false); setEditingSaree(null); setFormData({ type: "", design: "", productionType: "powerloom", colors: [{ color: "", quantity: "" }], costPrice: "", sellingPrice: "", includeFinishingCost: false }); }}>
+                  <Button type="button" variant="outline" onClick={() => { setIsDialogOpen(false); setEditingSaree(null); setFormData({ type: "", design: "", productionType: defaultProductionType, colors: [{ color: "", quantity: "" }], costPrice: "", sellingPrice: "", includeFinishingCost: false }); }}>
                     Cancel
                   </Button>
                 </div>

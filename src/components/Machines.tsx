@@ -81,6 +81,7 @@ const Machines = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingMachine, setEditingMachine] = useState<Machine | null>(null);
   const sareeTypes = ["Silk Saree", "Cotton Saree", "Georgette Saree", "Chiffon Saree", "Banarasi Saree", "Kanjivaram Saree"];
+  const defaultProductionType = (typeParam === "handloom" ? "handloom" : "powerloom") as "powerloom" | "handloom";
 
   const [newMachine, setNewMachine] = useState<{
     name: string;
@@ -97,7 +98,7 @@ const Machines = () => {
   }>({
     name: "",
     type: "",
-    productionType: "powerloom",
+    productionType: defaultProductionType,
     location: "",
     status: "working",
     notes: "",
@@ -110,6 +111,12 @@ const Machines = () => {
 
   const machineTypes = ["Power Loom", "Hand Loom", "Dyeing Machine", "Finishing Machine", "Quality Control", "Spinning Machine"];
   const workerNames = workersList.map((w) => w.name);
+
+  useEffect(() => {
+    if (!editingMachine) {
+      setNewMachine((prev) => ({ ...prev, productionType: defaultProductionType }));
+    }
+  }, [defaultProductionType, editingMachine]);
 
   useEffect(() => {
     if (editingMachine) {
@@ -131,7 +138,7 @@ const Machines = () => {
   }, [editingMachine]);
 
   const resetForm = () => {
-    setNewMachine({ name: "", type: "", productionType: "powerloom", location: "", status: "working", notes: "", sareeType: "", assignedWorker: "", dailyProductionMeters: 0, ratePerMeter: 35, metersPerSaree: 6.5 });
+    setNewMachine({ name: "", type: "", productionType: defaultProductionType, location: "", status: "working", notes: "", sareeType: "", assignedWorker: "", dailyProductionMeters: 0, ratePerMeter: 35, metersPerSaree: 6.5 });
     setEditingMachine(null);
   };
 

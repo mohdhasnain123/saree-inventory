@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -141,7 +141,19 @@ const Customers = () => {
   const [statusFilter, setStatusFilter] = useState<"all" | Customer["status"]>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editing, setEditing] = useState<CustomerSummary | null>(null);
-  const [form, setForm] = useState<typeof emptyForm>(emptyForm);
+  const [form, setForm] = useState<typeof emptyForm>(() => ({
+    ...emptyForm,
+    productionType: typeParam === "powerloom" || typeParam === "handloom" ? typeParam : "both",
+  }));
+
+  useEffect(() => {
+    if (!editing) {
+      setForm((prev) => ({
+        ...prev,
+        productionType: typeParam === "powerloom" || typeParam === "handloom" ? typeParam : "both",
+      }));
+    }
+  }, [typeParam, editing]);
 
   const totals = useMemo(() => {
     const active = customers.filter((c) => c.status === "active");
@@ -181,7 +193,10 @@ const Customers = () => {
 
   const handleAdd = () => {
     setEditing(null);
-    setForm(emptyForm);
+    setForm({
+      ...emptyForm,
+      productionType: typeParam === "powerloom" || typeParam === "handloom" ? typeParam : "both",
+    });
     setIsDialogOpen(true);
   };
 
@@ -203,7 +218,10 @@ const Customers = () => {
     }
     setIsDialogOpen(false);
     setEditing(null);
-    setForm(emptyForm);
+    setForm({
+      ...emptyForm,
+      productionType: typeParam === "powerloom" || typeParam === "handloom" ? typeParam : "both",
+    });
   };
 
   const statusBadge = (s: Customer["status"]) => {

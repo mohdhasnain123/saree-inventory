@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Building2, Plus, Edit, Trash2, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProductionType } from "@/contexts/ProductionTypeContext";
 
 interface Supplier {
   id: string;
@@ -25,6 +26,7 @@ interface Supplier {
   lastPurchaseDate?: string | null;
   notes: string;
   status: "active" | "inactive";
+  productionType?: "powerloom" | "handloom";
 }
 
 interface Purchase {
@@ -50,16 +52,18 @@ const emptyForm = {
   paymentTerms: "",
   notes: "",
   status: "active" as "active" | "inactive",
+  productionType: "powerloom" as "powerloom" | "handloom",
 };
 
 const Suppliers = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { canWrite } = useAuth();
+  const { typeParam, typeQuery } = useProductionType();
 
   const { data: suppliers = [], isLoading: isSuppliersLoading } = useQuery<Supplier[]>({
-    queryKey: ["suppliers"],
-    queryFn: () => api.get<Supplier[]>("/suppliers"),
+    queryKey: ["suppliers", typeParam ?? "all"],
+    queryFn: () => api.get<Supplier[]>(`/suppliers${typeQuery}`),
   });
 
   const { data: purchases = [] } = useQuery<Purchase[]>({
@@ -94,14 +98,21 @@ const Suppliers = () => {
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
-  const [formData, setFormData] = useState(emptyForm);
+  const [formData, setFormData] = useState(() => ({ ...emptyForm, productionType: (typeParam || "powerloom") as "powerloom" | "handloom" }));
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!editingSupplier) {
+      setFormData((prev) => ({ ...prev, productionType: (typeParam || "powerloom") as "powerloom" | "handloom" }));
+    }
+  }, [editingSupplier, typeParam]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const payload = {
       ...formData,
+      productionType: editingSupplier?.productionType || formData.productionType || typeParam || "powerloom",
       name: formData.name.trim(),
       contactPerson: formData.contactPerson.trim(),
       phone: formData.phone.trim(),
@@ -119,7 +130,7 @@ const Suppliers = () => {
   };
 
   const resetForm = () => {
-    setFormData(emptyForm);
+    setFormData({ ...emptyForm, productionType: (typeParam || "powerloom") as "powerloom" | "handloom" });
     setEditingSupplier(null);
   };
 
@@ -134,6 +145,7 @@ const Suppliers = () => {
       paymentTerms: supplier.paymentTerms,
       notes: supplier.notes,
       status: supplier.status,
+      productionType: supplier.productionType || (typeParam || "powerloom"),
     });
   };
 
@@ -146,6 +158,11 @@ const Suppliers = () => {
     () => purchases.filter((purchase) => purchase.supplierId === selectedSupplierId),
     [purchases, selectedSupplierId]
   );
+
+  const visibleSuppliers = useMemo(() => {
+    if (!typeParam) return suppliers;
+    return suppliers.filter((supplier) => supplier.productionType === typeParam);
+  }, [suppliers, typeParam]);
 
   return (
     <div className="space-y-6">
@@ -217,7 +234,7 @@ const Suppliers = () => {
         <Card className="bg-gradient-card shadow-card border-0"><CardContent className="py-8 text-center text-muted-foreground">Loading suppliers...</CardContent></Card>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
-          {suppliers.map((supplier) => {
+          {visibleSuppliers.map((supplier) => {
             const isSelected = selectedSupplierId === supplier.id;
             return (
               <Card
@@ -239,7 +256,10 @@ const Suppliers = () => {
                       <CardTitle className="text-lg">{supplier.name}</CardTitle>
                       <p className="text-sm text-muted-foreground">{supplier.contactPerson || "No contact person"}</p>
                     </div>
-                    <Badge variant={supplier.status === "active" ? "default" : "secondary"}>{supplier.status}</Badge>
+                    <div className="flex gap-2">
+                      <Badge variant={supplier.status === "active" ? "default" : "secondary"}>{supplier.status}</Badge>
+                      <Badge variant="outline" className="capitalize">{supplier.productionType || "powerloom"}</Badge>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">

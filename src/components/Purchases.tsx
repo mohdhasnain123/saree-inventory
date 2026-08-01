@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { ShoppingBag, Plus, Edit, Trash2, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProductionType } from "@/contexts/ProductionTypeContext";
 
 interface Supplier {
   id: string;
@@ -29,6 +30,7 @@ interface Purchase {
   totalCost: number;
   purchaseDate: string;
   notes: string;
+  productionType?: "powerloom" | "handloom";
 }
 
 const emptyForm = {
@@ -40,21 +42,23 @@ const emptyForm = {
   unitCost: "",
   purchaseDate: new Date().toISOString().slice(0, 10),
   notes: "",
+  productionType: "powerloom" as "powerloom" | "handloom",
 };
 
 const Purchases = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { canWrite } = useAuth();
+  const { typeParam, typeQuery } = useProductionType();
 
   const { data: suppliers = [] } = useQuery<Supplier[]>({
-    queryKey: ["suppliers"],
-    queryFn: () => api.get<Supplier[]>("/suppliers"),
+    queryKey: ["suppliers", typeParam ?? "all"],
+    queryFn: () => api.get<Supplier[]>(`/suppliers${typeQuery}`),
   });
 
   const { data: purchases = [], isLoading } = useQuery<Purchase[]>({
-    queryKey: ["purchases"],
-    queryFn: () => api.get<Purchase[]>("/purchases"),
+    queryKey: ["purchases", typeParam ?? "all"],
+    queryFn: () => api.get<Purchase[]>(`/purchases${typeQuery}`),
   });
 
   const createMutation = useMutation({
@@ -87,8 +91,14 @@ const Purchases = () => {
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
-  const [formData, setFormData] = useState(emptyForm);
+  const [formData, setFormData] = useState(() => ({ ...emptyForm, productionType: (typeParam || "powerloom") as "powerloom" | "handloom" }));
   const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
+
+  useEffect(() => {
+    if (!editingPurchase) {
+      setFormData((prev) => ({ ...prev, productionType: (typeParam || "powerloom") as "powerloom" | "handloom" }));
+    }
+  }, [editingPurchase, typeParam]);
 
   const totalPurchaseValue = useMemo(() => purchases.reduce((sum, purchase) => sum + purchase.totalCost, 0), [purchases]);
 
@@ -100,6 +110,7 @@ const Purchases = () => {
     }
     const payload = {
       supplierId: formData.supplierId,
+      productionType: editingPurchase?.productionType || formData.productionType || typeParam || "powerloom",
       itemType: formData.itemType,
       itemName: formData.itemName.trim(),
       design: formData.design.trim(),
@@ -119,7 +130,7 @@ const Purchases = () => {
   };
 
   const resetForm = () => {
-    setFormData(emptyForm);
+    setFormData({ ...emptyForm, productionType: (typeParam || "powerloom") as "powerloom" | "handloom" });
     setEditingPurchase(null);
   };
 
@@ -134,6 +145,7 @@ const Purchases = () => {
       unitCost: purchase.unitCost.toString(),
       purchaseDate: purchase.purchaseDate.slice(0, 10),
       notes: purchase.notes,
+      productionType: purchase.productionType || (typeParam || "powerloom"),
     });
   };
 
@@ -235,7 +247,10 @@ const Purchases = () => {
                     <CardTitle className="text-lg">{purchase.itemName}</CardTitle>
                     <p className="text-sm text-muted-foreground">{purchase.supplierName}</p>
                   </div>
-                  <Badge className="bg-primary/10 text-primary border-0 capitalize">{purchase.itemType}</Badge>
+                  <div className="flex gap-2">
+                    <Badge className="bg-primary/10 text-primary border-0 capitalize">{purchase.itemType}</Badge>
+                    <Badge variant="outline" className="capitalize">{purchase.productionType || "powerloom"}</Badge>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
