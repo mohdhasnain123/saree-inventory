@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,20 @@ interface Supplier {
   status: "active" | "inactive";
 }
 
+interface Purchase {
+  id: string;
+  supplierId: string;
+  supplierName: string;
+  itemType: "saree" | "suit";
+  itemName: string;
+  design: string;
+  quantity: number;
+  unitCost: number;
+  totalCost: number;
+  purchaseDate: string;
+  notes: string;
+}
+
 const emptyForm = {
   name: "",
   contactPerson: "",
@@ -43,9 +57,14 @@ const Suppliers = () => {
   const queryClient = useQueryClient();
   const { canWrite } = useAuth();
 
-  const { data: suppliers = [], isLoading } = useQuery<Supplier[]>({
+  const { data: suppliers = [], isLoading: isSuppliersLoading } = useQuery<Supplier[]>({
     queryKey: ["suppliers"],
     queryFn: () => api.get<Supplier[]>("/suppliers"),
+  });
+
+  const { data: purchases = [] } = useQuery<Purchase[]>({
+    queryKey: ["purchases"],
+    queryFn: () => api.get<Purchase[]>("/purchases"),
   });
 
   const createMutation = useMutation({
@@ -77,6 +96,7 @@ const Suppliers = () => {
 
   const [formData, setFormData] = useState(emptyForm);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,6 +141,11 @@ const Suppliers = () => {
     if (!value) return "—";
     return new Date(value).toLocaleDateString();
   };
+
+  const selectedSupplierPurchases = useMemo(
+    () => purchases.filter((purchase) => purchase.supplierId === selectedSupplierId),
+    [purchases, selectedSupplierId]
+  );
 
   return (
     <div className="space-y-6">
@@ -188,41 +213,86 @@ const Suppliers = () => {
         </CardContent>
       </Card>
 
-      {isLoading ? (
+      {isSuppliersLoading ? (
         <Card className="bg-gradient-card shadow-card border-0"><CardContent className="py-8 text-center text-muted-foreground">Loading suppliers...</CardContent></Card>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
-          {suppliers.map((supplier) => (
-            <Card key={supplier.id} className="bg-gradient-card shadow-card border-0">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <CardTitle className="text-lg">{supplier.name}</CardTitle>
-                    <p className="text-sm text-muted-foreground">{supplier.contactPerson || "No contact person"}</p>
+          {suppliers.map((supplier) => {
+            const isSelected = selectedSupplierId === supplier.id;
+            return (
+              <Card
+                key={supplier.id}
+                className={`bg-gradient-card shadow-card border-0 transition-all ${isSelected ? "ring-2 ring-primary/40" : ""}`}
+                onClick={() => setSelectedSupplierId(supplier.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelectedSupplierId(supplier.id);
+                  }
+                }}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <CardTitle className="text-lg">{supplier.name}</CardTitle>
+                      <p className="text-sm text-muted-foreground">{supplier.contactPerson || "No contact person"}</p>
+                    </div>
+                    <Badge variant={supplier.status === "active" ? "default" : "secondary"}>{supplier.status}</Badge>
                   </div>
-                  <Badge variant={supplier.status === "active" ? "default" : "secondary"}>{supplier.status}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  <Badge className="bg-primary/10 text-primary border-0">{supplier.purchaseCount} purchases</Badge>
-                  <Badge className="bg-success/10 text-success border-0">₹{supplier.totalPurchases.toLocaleString()}</Badge>
-                </div>
-                <div className="text-sm text-muted-foreground space-y-1">
-                  <p>Phone: {supplier.phone || "—"}</p>
-                  <p>Email: {supplier.email || "—"}</p>
-                  <p>Last purchase: {formatDate(supplier.lastPurchaseDate)}</p>
-                  <p>Payment terms: {supplier.paymentTerms || "—"}</p>
-                </div>
-                {canWrite && (
-                  <div className="flex gap-2 pt-2">
-                    <Button size="sm" variant="outline" onClick={() => handleEdit(supplier)}><Edit className="w-3 h-3 mr-1" /> Edit</Button>
-                    <Button size="sm" variant="destructive" onClick={() => deleteMutation.mutate(supplier.id)} disabled={deleteMutation.isPending}><Trash2 className="w-3 h-3 mr-1" /> Delete</Button>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex flex-wrap gap-2">
+                    <Badge className="bg-primary/10 text-primary border-0">{supplier.purchaseCount} purchases</Badge>
+                    <Badge className="bg-success/10 text-success border-0">₹{supplier.totalPurchases.toLocaleString()}</Badge>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>Phone: {supplier.phone || "—"}</p>
+                    <p>Email: {supplier.email || "—"}</p>
+                    <p>Last purchase: {formatDate(supplier.lastPurchaseDate)}</p>
+                    <p>Payment terms: {supplier.paymentTerms || "—"}</p>
+                  </div>
+
+                  {isSelected && (
+                    <div className="rounded-lg border border-border/60 bg-background/60 p-3">
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="text-sm font-medium">Supply history</p>
+                        <Badge variant="outline">{selectedSupplierPurchases.length}</Badge>
+                      </div>
+                      {selectedSupplierPurchases.length ? (
+                        <div className="space-y-2">
+                          {selectedSupplierPurchases.map((purchase) => (
+                            <div key={purchase.id} className="rounded-md border border-border/50 bg-background/80 p-2 text-sm">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-medium">{purchase.itemName}</span>
+                                <span className="text-muted-foreground">{new Date(purchase.purchaseDate).toLocaleDateString()}</span>
+                              </div>
+                              <p className="text-muted-foreground">{purchase.design || "No design provided"}</p>
+                              <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                                <span>Qty: {purchase.quantity}</span>
+                                <span>₹{purchase.totalCost.toLocaleString()}</span>
+                                <span className="capitalize">{purchase.itemType}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No supply history recorded yet.</p>
+                      )}
+                    </div>
+                  )}
+
+                  {canWrite && (
+                    <div className="flex gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
+                      <Button size="sm" variant="outline" onClick={() => handleEdit(supplier)}><Edit className="w-3 h-3 mr-1" /> Edit</Button>
+                      <Button size="sm" variant="destructive" onClick={() => deleteMutation.mutate(supplier.id)} disabled={deleteMutation.isPending}><Trash2 className="w-3 h-3 mr-1" /> Delete</Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
