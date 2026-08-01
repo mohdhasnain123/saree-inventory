@@ -6,6 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent as AlertDialogContentWrapper,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Shirt, Plus, Search, Edit, Trash2, Calendar, IndianRupee, X } from "lucide-react";
@@ -81,6 +91,8 @@ const SareeInventory = () => {
   const [filterType, setFilterType] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSaree, setEditingSaree] = useState<Saree | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [sareeToDelete, setSareeToDelete] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     type: "",
     design: "",
@@ -120,8 +132,8 @@ const SareeInventory = () => {
     const baseCost = parseFloat(formData.costPrice);
     const finishingPerSaree =
       (finishingCosts?.cuttingCost || 0) + (finishingCosts?.waxingCost || 0);
-    const shouldIncludeFinishingCost = !editingSaree && formData.includeFinishingCost;
-    const costPrice = editingSaree ? baseCost : shouldIncludeFinishingCost ? baseCost + finishingPerSaree : baseCost;
+    const shouldIncludeFinishingCost = formData.includeFinishingCost;
+    const costPrice = shouldIncludeFinishingCost ? baseCost + finishingPerSaree : baseCost;
     const sellingPrice = parseFloat(formData.sellingPrice);
     const status = getStatus(quantity);
     const { totalValue, profitMargin } = calculateValues(quantity, costPrice, sellingPrice);
@@ -165,7 +177,18 @@ const SareeInventory = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => deleteMutation.mutate(id);
+  const handleDeleteClick = (id: string) => {
+    setSareeToDelete(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (sareeToDelete) {
+      deleteMutation.mutate(sareeToDelete);
+    }
+    setSareeToDelete(null);
+    setIsDeleteDialogOpen(false);
+  };
 
   const filteredSarees = sarees.filter((saree) => {
     const matchesSearch =
@@ -271,7 +294,7 @@ const SareeInventory = () => {
                   <div>
                     <Label htmlFor="costPrice">Cost Price (₹)</Label>
                     <Input id="costPrice" type="number" value={formData.costPrice} onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })} placeholder="0" required />
-                    {!editingSaree && finishingCosts && ((finishingCosts.cuttingCost || 0) + (finishingCosts.waxingCost || 0) > 0) && (
+                    {finishingCosts && ((finishingCosts.cuttingCost || 0) + (finishingCosts.waxingCost || 0) > 0) && (
                       <div className="flex items-start space-x-2 mt-2">
                         <Checkbox
                           id="includeFinishingCost"
@@ -411,7 +434,7 @@ const SareeInventory = () => {
                     {canWrite && (
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline" onClick={() => handleEdit(saree)}><Edit className="w-3 h-3" /></Button>
-                        <Button size="sm" variant="destructive" onClick={() => handleDelete(saree.id)}><Trash2 className="w-3 h-3" /></Button>
+                        <Button size="sm" variant="destructive" onClick={() => handleDeleteClick(saree.id)}><Trash2 className="w-3 h-3" /></Button>
                       </div>
                     )}
                   </div>
@@ -421,6 +444,26 @@ const SareeInventory = () => {
           ))}
         </div>
       )}
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={(open) => {
+        setIsDeleteDialogOpen(open);
+        if (!open) setSareeToDelete(null);
+      }}>
+        <AlertDialogContentWrapper>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete saree?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The selected saree will be removed permanently.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContentWrapper>
+      </AlertDialog>
 
       {!isLoading && filteredSarees.length === 0 && (
         <Card className="bg-gradient-card shadow-card border-0">
