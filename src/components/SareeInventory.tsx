@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Shirt, Plus, Search, Edit, Trash2, Calendar, IndianRupee, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
@@ -87,6 +88,7 @@ const SareeInventory = () => {
     colors: [{ color: "", quantity: "" }] as { color: string; quantity: string }[],
     costPrice: "",
     sellingPrice: "",
+    includeFinishingCost: false,
   });
 
   const getStatusColor = (status: Saree["status"]) => {
@@ -118,7 +120,8 @@ const SareeInventory = () => {
     const baseCost = parseFloat(formData.costPrice);
     const finishingPerSaree =
       (finishingCosts?.cuttingCost || 0) + (finishingCosts?.waxingCost || 0);
-    const costPrice = editingSaree ? baseCost : baseCost + finishingPerSaree;
+    const shouldIncludeFinishingCost = !editingSaree && formData.includeFinishingCost;
+    const costPrice = editingSaree ? baseCost : shouldIncludeFinishingCost ? baseCost + finishingPerSaree : baseCost;
     const sellingPrice = parseFloat(formData.sellingPrice);
     const status = getStatus(quantity);
     const { totalValue, profitMargin } = calculateValues(quantity, costPrice, sellingPrice);
@@ -141,7 +144,7 @@ const SareeInventory = () => {
       createMutation.mutate(payload);
     }
 
-    setFormData({ type: "", design: "", productionType: "powerloom", colors: [{ color: "", quantity: "" }], costPrice: "", sellingPrice: "" });
+    setFormData({ type: "", design: "", productionType: "powerloom", colors: [{ color: "", quantity: "" }], costPrice: "", sellingPrice: "", includeFinishingCost: false });
     setEditingSaree(null);
     setIsDialogOpen(false);
   };
@@ -157,6 +160,7 @@ const SareeInventory = () => {
         : [{ color: "", quantity: "" }],
       costPrice: saree.costPrice.toString(),
       sellingPrice: saree.sellingPrice.toString(),
+      includeFinishingCost: false,
     });
     setIsDialogOpen(true);
   };
@@ -267,10 +271,20 @@ const SareeInventory = () => {
                   <div>
                     <Label htmlFor="costPrice">Cost Price (₹)</Label>
                     <Input id="costPrice" type="number" value={formData.costPrice} onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })} placeholder="0" required />
-                    {!editingSaree && finishingCosts && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        + ₹{(finishingCosts.cuttingCost || 0) + (finishingCosts.waxingCost || 0)} finishing
-                      </p>
+                    {!editingSaree && finishingCosts && ((finishingCosts.cuttingCost || 0) + (finishingCosts.waxingCost || 0) > 0) && (
+                      <div className="flex items-start space-x-2 mt-2">
+                        <Checkbox
+                          id="includeFinishingCost"
+                          checked={formData.includeFinishingCost}
+                          onCheckedChange={(checked) => setFormData({ ...formData, includeFinishingCost: checked === true })}
+                        />
+                        <div className="grid gap-1.5 leading-none">
+                          <Label htmlFor="includeFinishingCost" className="text-xs font-medium leading-none">
+                            Add ₹{(finishingCosts.cuttingCost || 0) + (finishingCosts.waxingCost || 0)} finishing cost
+                          </Label>
+                          <p className="text-xs text-muted-foreground">Leave it unchecked to keep the base cost price unchanged.</p>
+                        </div>
+                      </div>
                     )}
                   </div>
                   <div>
@@ -282,7 +296,7 @@ const SareeInventory = () => {
                   <Button type="submit" className="flex-1">
                     {editingSaree ? "Update" : "Add"} Saree
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => { setIsDialogOpen(false); setEditingSaree(null); setFormData({ type: "", design: "", colors: [{ color: "", quantity: "" }], costPrice: "", sellingPrice: "" }); }}>
+                  <Button type="button" variant="outline" onClick={() => { setIsDialogOpen(false); setEditingSaree(null); setFormData({ type: "", design: "", productionType: "powerloom", colors: [{ color: "", quantity: "" }], costPrice: "", sellingPrice: "", includeFinishingCost: false }); }}>
                     Cancel
                   </Button>
                 </div>
