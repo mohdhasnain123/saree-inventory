@@ -4,6 +4,8 @@ import Navigation from "@/components/Navigation";
 import RawMaterials from "@/components/RawMaterials";
 import SareeInventory from "@/components/SareeInventory";
 import Sales from "@/components/Sales";
+import Purchases from "@/components/Purchases";
+import Suppliers from "@/components/Suppliers";
 import Workers from "@/components/Workers";
 import Machines from "@/components/Machines";
 import Finishing from "@/components/Finishing";
@@ -21,6 +23,10 @@ const Index = () => {
         return <RawMaterials />;
       case "sarees":
         return <SareeInventory />;
+      case "purchases":
+        return <Purchases />;
+      case "suppliers":
+        return <Suppliers />;
       case "sales":
         return <Sales />;
       case "workers":

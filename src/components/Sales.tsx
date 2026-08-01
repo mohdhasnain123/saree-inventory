@@ -375,10 +375,26 @@ const generateTaxInvoice = (
   doc.save(`Invoice-${sale.id}-${sale.customerName.replace(/\s+/g, "_")}.pdf`);
 };
 
+interface PurchaseOption {
+  id: string;
+  supplierName: string;
+  itemType: "saree" | "suit";
+  itemName: string;
+  design: string;
+  quantity: number;
+  soldQuantity: number;
+  availableQuantity: number;
+  unitCost: number;
+}
+
 interface Sale {
   id: string;
   sareeId: string;
   sareeType: string;
+  purchaseId?: string;
+  purchaseItemType?: string;
+  purchaseItemName?: string;
+  purchaseDesign?: string;
   quantity: number;
   costPrice: number;
   sellingPrice: number;
@@ -405,6 +421,11 @@ const Sales = () => {
   const { data: sales = [], isLoading } = useQuery<Sale[]>({
     queryKey: ["sales", typeParam],
     queryFn: () => api.get<Sale[]>(`/sales${typeQuery}`),
+  });
+
+  const { data: purchases = [] } = useQuery<PurchaseOption[]>({
+    queryKey: ["purchases"],
+    queryFn: () => api.get<PurchaseOption[]>("/purchases"),
   });
 
   const createMutation = useMutation({
@@ -440,6 +461,7 @@ const Sales = () => {
   const [formData, setFormData] = useState({
     sareeId: "",
     sareeType: "",
+    purchaseId: "",
     quantity: "",
     costPrice: "",
     sellingPrice: "",
@@ -486,6 +508,7 @@ const Sales = () => {
     const payload: Partial<Sale> = {
       sareeId: formData.sareeId,
       sareeType: formData.sareeType,
+      purchaseId: formData.purchaseId || undefined,
       quantity,
       costPrice,
       sellingPrice,
@@ -508,7 +531,7 @@ const Sales = () => {
       createMutation.mutate(payload);
     }
 
-    setFormData({ sareeId: "", sareeType: "", quantity: "", costPrice: "", sellingPrice: "", customerName: "", saleDate: "", paymentTermMonths: "1", paymentMethod: "cash", returnedQuantity: "0" });
+    setFormData({ sareeId: "", sareeType: "", purchaseId: "", quantity: "", costPrice: "", sellingPrice: "", customerName: "", saleDate: "", paymentTermMonths: "1", paymentMethod: "cash", returnedQuantity: "0" });
     setEditingSale(null);
     setIsDialogOpen(false);
   };
@@ -518,6 +541,7 @@ const Sales = () => {
     setFormData({
       sareeId: sale.sareeId,
       sareeType: sale.sareeType,
+      purchaseId: sale.purchaseId || "",
       quantity: sale.quantity.toString(),
       costPrice: sale.costPrice.toString(),
       sellingPrice: sale.sellingPrice.toString(),
@@ -543,6 +567,19 @@ const Sales = () => {
     };
     generateTaxInvoice(sale, "ORIGINAL FOR RECIPIENT", override, settings.currency);
     toast({ title: "Bill Downloaded", description: `Invoice for ${sale.customerName} has been generated.` });
+  };
+
+  const handlePurchaseSelect = (purchaseId: string) => {
+    const selectedPurchase = purchases.find((purchase) => purchase.id === purchaseId);
+    if (!selectedPurchase) return;
+    setFormData((prev) => ({
+      ...prev,
+      purchaseId,
+      sareeId: selectedPurchase.id,
+      sareeType: selectedPurchase.itemName,
+      costPrice: selectedPurchase.unitCost.toString(),
+      sellingPrice: prev.sellingPrice || "",
+    }));
   };
 
   const filteredSales = sales.filter(sale =>
@@ -599,6 +636,20 @@ const Sales = () => {
                   </div>
                 </div>
                 <div>
+                  <Label htmlFor="purchaseId">Purchase Source (optional)</Label>
+                  <Select value={formData.purchaseId} onValueChange={handlePurchaseSelect}>
+                    <SelectTrigger><SelectValue placeholder="Select a purchased item" /></SelectTrigger>
+                    <SelectContent>
+                      {purchases.filter((purchase) => (purchase.availableQuantity || 0) > 0).map((purchase) => (
+                        <SelectItem key={purchase.id} value={purchase.id}>
+                          {purchase.itemName} • {purchase.design || "No design"} • {purchase.availableQuantity} available
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">Linking a purchase item will keep the sale tied to that stock entry.</p>
+                </div>
+                <div>
                   <Label htmlFor="quantity">Quantity</Label>
                   <Input id="quantity" type="number" value={formData.quantity} onChange={(e) => setFormData({ ...formData, quantity: e.target.value })} placeholder="0" required />
                 </div>
@@ -647,7 +698,7 @@ const Sales = () => {
                 </div>
                 <div className="flex gap-3 pt-4">
                   <Button type="submit" className="flex-1">{editingSale ? "Update" : "Record"} Sale</Button>
-                  <Button type="button" variant="outline" onClick={() => { setIsDialogOpen(false); setEditingSale(null); setFormData({ sareeId: "", sareeType: "", quantity: "", costPrice: "", sellingPrice: "", customerName: "", saleDate: "", paymentTermMonths: "1", paymentMethod: "cash", returnedQuantity: "0" }); }}>Cancel</Button>
+                  <Button type="button" variant="outline" onClick={() => { setIsDialogOpen(false); setEditingSale(null); setFormData({ sareeId: "", sareeType: "", purchaseId: "", quantity: "", costPrice: "", sellingPrice: "", customerName: "", saleDate: "", paymentTermMonths: "1", paymentMethod: "cash", returnedQuantity: "0" }); }}>Cancel</Button>
                 </div>
               </form>
             </DialogContent>
@@ -723,6 +774,9 @@ const Sales = () => {
                       <div>
                         <p className="text-muted-foreground">Saree</p>
                         <p className="font-medium text-foreground">{sale.sareeId} - {sale.sareeType}</p>
+                        {sale.purchaseItemName && (
+                          <p className="text-xs text-primary">Linked purchase: {sale.purchaseItemName}</p>
+                        )}
                       </div>
                       <div>
                         <p className="text-muted-foreground">Quantity</p>
